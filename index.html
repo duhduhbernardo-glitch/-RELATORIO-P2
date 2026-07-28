@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema Integrado de Produção & Qualidade</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     :root {
       --navy: #1B2A4A;
@@ -94,7 +95,7 @@
       <span>Unidade: 2</span>
       <span>|</span>
       <label>Turno:
-        <select id="selectTurno" onchange="atualizarCabecalho()">
+        <select id="selectTurno">
           <option value="A">Turno A</option>
           <option value="B">Turno B</option>
           <option value="C" selected>Turno C</option>
@@ -103,7 +104,7 @@
       </label>
       <span>|</span>
       <label>Responsável:
-        <input type="text" id="inputOperador" value="  " style="width: 120px;" onchange="atualizarCabecalho()">
+        <input type="text" id="inputOperador" value="André" style="width: 120px;">
       </label>
     </div>
   </header>
@@ -114,7 +115,6 @@
     <button class="tab-btn" onclick="switchTab('tab-entrega', this)">📋 Finalização & Entrega (Qualidade)</button>
   </div>
 
-  <!-- ABA 1: PALLETS -->
   <div id="tab-pallets" class="tab-content active">
     <div class="grid-container">
       <div class="card">
@@ -143,7 +143,7 @@
 
           <div class="form-group">
             <label>Referência:</label>
-            <input type="text" id="referencia" value="Marfim" required>
+            <input type="text" id="referencia" value="Margim" required>
           </div>
 
           <div class="form-row">
@@ -204,7 +204,6 @@
     </div>
   </div>
 
-  <!-- ABA 2: DEFEITOS -->
   <div id="tab-defeitos" class="tab-content">
     <div class="grid-container">
       <div class="card">
@@ -254,11 +253,11 @@
           <div class="form-row">
             <div class="form-group" style="flex: 1;">
               <label>Peças Boas:</label>
-              <input type="number" id="pecasBoas" value="98" min="0" required>
+              <input type="number" id="pecasBoas" value="0" min="0" required>
             </div>
             <div class="form-group" style="flex: 1;">
               <label>Peças c/ Defeito:</label>
-              <input type="number" id="pecasDefeito" value="2" min="0" required>
+              <input type="number" id="pecasDefeito" value="0" min="0" required>
             </div>
           </div>
 
@@ -297,7 +296,7 @@
             </div>
             <div class="form-group">
               <label>Qtd de Peças com este Defeito:</label>
-              <input type="number" id="qtdDefeito" value="1" min="1">
+              <input type="number" id="qtdDefeito" value="0" min="0">
             </div>
           </div>
 
@@ -333,7 +332,6 @@
     </div>
   </div>
 
-  <!-- ABA 3: ENTREGA & APROVAÇÃO -->
   <div id="tab-entrega" class="tab-content">
     <div class="card">
       <div id="bannerStatus" class="status-banner status-pendente">
@@ -353,7 +351,7 @@
           📲 Notificar Chefe da Qualidade (WhatsApp)
         </button>
         <button class="btn-action btn-gray" onclick="imprimirEFinalizar()">
-          🖨️ Imprimir / Salvar PDF & Zerar Turno
+          🖨️ Baixar PDF & Enviar WhatsApp
         </button>
         <button class="btn-action btn-danger" onclick="confirmarZerarTurno()">
           🔄 Zerar Dados para Próximo Turno
@@ -390,11 +388,7 @@
       if (tabId === 'tab-entrega') atualizarResumoFinal();
     }
 
-    function atualizarCabecalho() {
-      // Função reservada para mudanças instantâneas no cabeçalho
-    }
-
-    // --- LÓGICA DE SEQUÊNCIA DE ETIQUETAS ---
+    // --- LÓGICA DE PALLETS ---
     document.getElementById('palletForm').addEventListener('submit', function(e) {
       e.preventDefault();
       
@@ -555,19 +549,45 @@
                   `📐 *Volume Total:* ${totalVol.toLocaleString('pt-BR')} M²%0A` +
                   `🔍 *Peças Inspecionadas:* ${totalPecas}%0A` +
                   `⚠️ *% Média de Defeito:* ${pctDef}%%0A%0A` +
-                  `_Relatório finalizado no sistema web para sua revisão!_`;
+                  `_O relatório em PDF foi gerado e baixado!_`;
 
       window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
     }
 
-    // --- IMPRESSÃO & REINÍCIO DE TURNO ---
+    // --- IMPRESSÃO INSTANTÂNEA, WHATSAPP & REINÍCIO DE TURNO ---
     function imprimirEFinalizar() {
-      window.print();
-      setTimeout(() => {
-        if (confirm("O relatório foi salvo em PDF/Impresso com sucesso?\n\nDeseja ZERAR o sistema agora para dar início ao próximo turno?")) {
-          zerarTurno();
-        }
-      }, 1000);
+      // Oculta botões para não saírem no PDF
+      const elementosParaOcultar = document.querySelectorAll('.nav-tabs, .btn-add, .btn-action, #palletForm, #defectForm, .no-print');
+      elementosParaOcultar.forEach(el => el.style.display = 'none');
+
+      // Nome do arquivo PDF
+      const turno = document.getElementById('selectTurno').value;
+      const dataHoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+      const nomeArquivo = `Relatorio_Turno_${turno}_${dataHoje}.pdf`;
+
+      const opcoes = {
+        margin:       10,
+        filename:     nomeArquivo,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      // Gera e baixa o PDF instantaneamente
+      html2pdf().set(opcoes).from(document.body).save().then(() => {
+        // Restaura a exibição dos botões na tela
+        elementosParaOcultar.forEach(el => el.style.display = '');
+
+        // Abre o WhatsApp com o resumo
+        enviarWhatsApp();
+
+        // Pergunta se deseja zerar para o próximo turno
+        setTimeout(() => {
+          if (confirm("O PDF foi baixado e o WhatsApp foi aberto!\n\nDeseja ZERAR o sistema agora para dar início ao próximo turno?")) {
+            zerarTurno();
+          }
+        }, 600);
+      });
     }
 
     function confirmarZerarTurno() {
@@ -577,8 +597,11 @@
     }
 
     function zerarTurno() {
-      pallets.length = 0;
-      inspecoesDefeitos.length = 0;
+      pallets = [];
+      inspecoesDefeitos = [];
+
+      document.getElementById('palletForm').reset();
+      document.getElementById('defectForm').reset();
 
       atualizarTabelaPallets();
       atualizarKPIsPallets();
@@ -591,9 +614,6 @@
       banner.className = 'status-banner status-pendente';
       banner.innerText = '⏳ STATUS DO RELATÓRIO: AGUARDANDO REVISÃO DA QUALIDADE';
 
-      document.getElementById('etiqueta').value = '';
-
-      // Alterna automaticamente para o próximo turno no seletor
       const selectTurno = document.getElementById('selectTurno');
       if (selectTurno.value === 'A') selectTurno.value = 'B';
       else if (selectTurno.value === 'B') selectTurno.value = 'C';
@@ -648,6 +668,7 @@
       alert('Relatório Aprovado com Sucesso!');
     }
 
+    // Inicialização
     atualizarTabelaDefeitos();
     atualizarKPIsDefeitos();
   </script>
