@@ -15,6 +15,7 @@
       --green: #28a745;
       --red: #dc3545;
       --yellow: #ffc107;
+      --orange: #d97706;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -53,10 +54,10 @@
     .btn-danger { background: #dc3545; }
     .btn-danger:hover { background: #bd2130; }
 
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 15px; }
-    .stat-box { background: var(--bg); padding: 12px; border-radius: 6px; text-align: center; border: 1px solid var(--border); }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 15px; }
+    .stat-box { background: var(--bg); padding: 10px; border-radius: 6px; text-align: center; border: 1px solid var(--border); }
     .stat-box span { display: block; font-size: 0.75rem; color: #666; font-weight: bold; }
-    .stat-box strong { font-size: 1.3rem; color: var(--navy); }
+    .stat-box strong { font-size: 1.2rem; color: var(--navy); }
 
     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.88rem; }
     th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
@@ -104,7 +105,7 @@
       </label>
       <span>|</span>
       <label>Responsável:
-        <input type="text" id="inputOperador" value="  " style="width: 120px;">
+        <input type="text" id="inputOperador" value="André" style="width: 120px;">
       </label>
     </div>
   </header>
@@ -180,8 +181,9 @@
         <div class="stats">
           <div class="stat-box"><span>TOTAL PALLETS</span><strong id="kpiPallets">0</strong></div>
           <div class="stat-box"><span>VOLUME TOTAL (M²)</span><strong id="kpiVolume">0</strong></div>
-          <div class="stat-box"><span>% EXTRA</span><strong id="kpiExtra">0%</strong></div>
-          <div class="stat-box"><span>CACO/REFUGO</span><strong id="kpiCaco">0</strong></div>
+          <div class="stat-box"><span>% EXTRA</span><strong id="kpiExtra" style="color: var(--green);">0%</strong></div>
+          <div class="stat-box"><span>% COMERCIAL</span><strong id="kpiComercial" style="color: var(--orange);">0%</strong></div>
+          <div class="stat-box"><span>CACO/REFUGO</span><strong id="kpiCaco" style="color: var(--red);">0</strong></div>
         </div>
         <h2>Pallets Processados no Turno</h2>
         <div style="overflow-x: auto;">
@@ -342,6 +344,8 @@
       <div class="stats">
         <div class="stat-box"><span>TOTAL PALLETS</span><strong id="sumPallets">0</strong></div>
         <div class="stat-box"><span>VOLUME TOTAL</span><strong id="sumVolume">0 M²</strong></div>
+        <div class="stat-box"><span>% EXTRA</span><strong id="sumPctExtra" style="color: var(--green);">0%</strong></div>
+        <div class="stat-box"><span>% COMERCIAL</span><strong id="sumPctComercial" style="color: var(--orange);">0%</strong></div>
         <div class="stat-box"><span>INSPEÇÃO PEÇAS</span><strong id="sumPecas">0</strong></div>
         <div class="stat-box"><span>% DEFEITOS</span><strong id="sumPctDef">0%</strong></div>
       </div>
@@ -459,11 +463,13 @@
       const totalPallets = pallets.length;
       const totalVolume = pallets.reduce((acc, p) => acc + p.quantidade, 0);
       const totalExtra = pallets.filter(p => p.classificacao === 'EXTRA').length;
+      const totalComercial = pallets.filter(p => p.classificacao === 'COMERCIAL').length;
       const totalCaco = pallets.filter(p => p.classificacao === 'CACO').length;
 
       document.getElementById('kpiPallets').innerText = totalPallets;
       document.getElementById('kpiVolume').innerText = totalVolume.toLocaleString('pt-BR');
       document.getElementById('kpiExtra').innerText = totalPallets > 0 ? ((totalExtra / totalPallets) * 100).toFixed(1) + '%' : '0%';
+      document.getElementById('kpiComercial').innerText = totalPallets > 0 ? ((totalComercial / totalPallets) * 100).toFixed(1) + '%' : '0%';
       document.getElementById('kpiCaco').innerText = totalCaco;
     }
 
@@ -524,12 +530,16 @@
     function atualizarResumoFinal() {
       const totalPallets = pallets.length;
       const totalVol = pallets.reduce((acc, p) => acc + p.quantidade, 0);
+      const totalExtra = pallets.filter(p => p.classificacao === 'EXTRA').length;
+      const totalComercial = pallets.filter(p => p.classificacao === 'COMERCIAL').length;
       const totalPecas = inspecoesDefeitos.reduce((acc, d) => acc + d.boas + d.defeito, 0);
       const totalDefeitos = inspecoesDefeitos.reduce((acc, d) => acc + d.defeito, 0);
       const pctDef = totalPecas > 0 ? ((totalDefeitos / totalPecas) * 100).toFixed(1) : '0.0';
 
       document.getElementById('sumPallets').innerText = totalPallets;
       document.getElementById('sumVolume').innerText = totalVol.toLocaleString('pt-BR') + ' M²';
+      document.getElementById('sumPctExtra').innerText = totalPallets > 0 ? ((totalExtra / totalPallets) * 100).toFixed(1) + '%' : '0%';
+      document.getElementById('sumPctComercial').innerText = totalPallets > 0 ? ((totalComercial / totalPallets) * 100).toFixed(1) + '%' : '0%';
       document.getElementById('sumPecas').innerText = totalPecas;
       document.getElementById('sumPctDef').innerText = pctDef + '%';
     }
@@ -540,7 +550,6 @@
 
     // --- GERAÇÃO DE PDF E REDIRECIONAMENTO WHATSAPP ---
     function imprimirEFinalizar() {
-      // Oculta botões para não saírem no PDF
       const elementosParaOcultar = document.querySelectorAll('.nav-tabs, .btn-add, .btn-action, #palletForm, #defectForm, .no-print');
       elementosParaOcultar.forEach(el => el.style.display = 'none');
 
@@ -556,23 +565,23 @@
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      // Gera e baixa o PDF instantaneamente
       html2pdf().set(opcoes).from(document.body).save().then(() => {
-        // Restaura a exibição dos botões na tela
         elementosParaOcultar.forEach(el => el.style.display = '');
 
-        // Notifica o usuário e abre o WhatsApp limpo para anexar o PDF
         setTimeout(() => {
-          alert("✅ PDF gerado e baixado com sucesso!\n\nAgora o WhatsApp será aberto para você anexar o arquivo PDF gerado.");
-          
-          // Abre o WhatsApp limpo (sem texto)
-          abrirWhatsAppSimples();
+          alert("📄 PDF baixado com sucesso na sua pasta 'Downloads'!");
 
           setTimeout(() => {
-            if (confirm("Deseja ZERAR os dados do sistema agora para dar início ao próximo turno?")) {
-              zerarTurno();
-            }
-          }, 800);
+            alert("📲 Clique em OK para abrir o WhatsApp e anexar o arquivo PDF baixado.");
+            
+            abrirWhatsAppSimples();
+
+            setTimeout(() => {
+              if (confirm("Deseja ZERAR os dados do sistema agora para dar início ao próximo turno?")) {
+                zerarTurno();
+              }
+            }, 800);
+          }, 400);
         }, 300);
       });
     }
