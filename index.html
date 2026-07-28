@@ -16,6 +16,7 @@
       --red: #dc3545;
       --yellow: #ffc107;
       --orange: #d97706;
+      --purple: #6f42c1;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -68,6 +69,7 @@
     .badge-extra { background: #e6f4ea; color: #137333; }
     .badge-caco { background: #fce8e6; color: #c5221f; }
     .badge-comercial { background: #feefc3; color: #b06000; }
+    .badge-linha { background: #e8f0fe; color: #1a73e8; border: 1px solid #aecbfa; }
 
     .defect-chip { display: inline-block; background: #eef2f7; border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 0.78rem; margin: 2px; font-weight: 600; color: #334155; }
 
@@ -79,9 +81,11 @@
     .header-controls label { font-size: 0.9rem; font-weight: bold; }
     .header-controls select, .header-controls input { padding: 5px 10px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; color: #1B2A4A; }
 
+    .table-filter-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+
     @media print {
       body { padding: 0; background: white; }
-      .nav-tabs, .btn-add, .btn-action, #palletForm, #defectForm, .no-print { display: none !important; }
+      .nav-tabs, .btn-add, .btn-action, #palletForm, #defectForm, .no-print, .table-filter-bar { display: none !important; }
       .grid-container { display: block; }
       .card { border: none; box-shadow: none; padding: 0; margin-bottom: 30px; }
       .tab-content { display: block !important; }
@@ -122,6 +126,14 @@
         <h2>Registrar Pallet</h2>
         <form id="palletForm">
           <div class="form-group">
+            <label style="color: var(--navy); font-size: 0.9rem;">🏭 Linha de Produção:</label>
+            <select id="linhaProducao" style="border: 2px solid var(--navy); font-weight: bold; background: #e8f0fe;">
+              <option value="Linha 1">Linha 1</option>
+              <option value="Linha 2">Linha 2</option>
+            </select>
+          </div>
+
+          <div class="form-group">
             <label>Nº Inicial da Etiqueta:</label>
             <input type="text" id="etiqueta" placeholder="Ex: 0220476674" required autofocus>
           </div>
@@ -143,7 +155,7 @@
           </div>
 
           <div class="form-group">
-            <label>Referência:</label>
+            <label>Referência / Produto:</label>
             <input type="text" id="referencia" value="Margim" required>
           </div>
 
@@ -181,18 +193,32 @@
         <div class="stats">
           <div class="stat-box"><span>TOTAL PALLETS</span><strong id="kpiPallets">0</strong></div>
           <div class="stat-box"><span>VOLUME TOTAL (M²)</span><strong id="kpiVolume">0</strong></div>
+          <div class="stat-box"><span>LINHA 1 (M²)</span><strong id="kpiLinha1" style="color: var(--blue);">0</strong></div>
+          <div class="stat-box"><span>LINHA 2 (M²)</span><strong id="kpiLinha2" style="color: var(--purple);">0</strong></div>
           <div class="stat-box"><span>% EXTRA</span><strong id="kpiExtra" style="color: var(--green);">0%</strong></div>
           <div class="stat-box"><span>% COMERCIAL</span><strong id="kpiComercial" style="color: var(--orange);">0%</strong></div>
-          <div class="stat-box"><span>CACO/REFUGO</span><strong id="kpiCaco" style="color: var(--red);">0</strong></div>
         </div>
-        <h2>Pallets Processados no Turno</h2>
+
+        <div class="table-filter-bar">
+          <h2>Pallets Processados no Turno</h2>
+          <div>
+            <label style="font-size: 0.85rem; font-weight: bold;">Filtrar Tabela: </label>
+            <select id="filtroLinhaTabela" onchange="atualizarTabelaPallets()" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-weight: bold;">
+              <option value="TODAS">Todas as Linhas</option>
+              <option value="Linha 1">Linha 1</option>
+              <option value="Linha 2">Linha 2</option>
+            </select>
+          </div>
+        </div>
+
         <div style="overflow-x: auto;">
           <table>
             <thead>
               <tr>
                 <th>Seq</th>
+                <th>Linha</th>
                 <th>Etiqueta</th>
-                <th>Ref</th>
+                <th>Ref / Produto</th>
                 <th>BIT/TON</th>
                 <th>Qtd (M²)</th>
                 <th>Classificação</th>
@@ -212,6 +238,13 @@
         <h2>Inspeção Horária do Produto</h2>
         <form id="defectForm">
           <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label>Linha:</label>
+              <select id="defLinha">
+                <option value="Linha 1">Linha 1</option>
+                <option value="Linha 2">Linha 2</option>
+              </select>
+            </div>
             <div class="form-group" style="flex: 1;">
               <label>Horário:</label>
               <select id="defHora">
@@ -241,15 +274,17 @@
                 <option value="23:00">23:00</option>
               </select>
             </div>
+          </div>
+
+          <div class="form-row">
             <div class="form-group" style="flex: 1;">
               <label>Formato:</label>
               <input type="text" id="defFormato" value="257x423">
             </div>
-          </div>
-
-          <div class="form-group">
-            <label>Referência:</label>
-            <input type="text" id="defRef" value="Ceramica">
+            <div class="form-group" style="flex: 1;">
+              <label>Referência:</label>
+              <input type="text" id="defRef" value="Ceramica">
+            </div>
           </div>
 
           <div class="form-row">
@@ -319,6 +354,7 @@
             <thead>
               <tr>
                 <th>Hora</th>
+                <th>Linha</th>
                 <th>Referência</th>
                 <th>Boas</th>
                 <th>Defeito</th>
@@ -344,10 +380,10 @@
       <div class="stats">
         <div class="stat-box"><span>TOTAL PALLETS</span><strong id="sumPallets">0</strong></div>
         <div class="stat-box"><span>VOLUME TOTAL</span><strong id="sumVolume">0 M²</strong></div>
+        <div class="stat-box"><span>VOL. LINHA 1</span><strong id="sumLinha1" style="color: var(--blue);">0 M²</strong></div>
+        <div class="stat-box"><span>VOL. LINHA 2</span><strong id="sumLinha2" style="color: var(--purple);">0 M²</strong></div>
         <div class="stat-box"><span>% EXTRA</span><strong id="sumPctExtra" style="color: var(--green);">0%</strong></div>
         <div class="stat-box"><span>% COMERCIAL</span><strong id="sumPctComercial" style="color: var(--orange);">0%</strong></div>
-        <div class="stat-box"><span>INSPEÇÃO PEÇAS</span><strong id="sumPecas">0</strong></div>
-        <div class="stat-box"><span>% DEFEITOS</span><strong id="sumPctDef">0%</strong></div>
       </div>
 
       <div class="no-print" style="margin: 20px 0; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
@@ -396,6 +432,7 @@
     document.getElementById('palletForm').addEventListener('submit', function(e) {
       e.preventDefault();
       
+      const linha = document.getElementById('linhaProducao').value;
       let etiquetaInicial = document.getElementById('etiqueta').value.trim();
       const qtdSeq = parseInt(document.getElementById('qtdSequencia').value);
       const referencia = document.getElementById('referencia').value;
@@ -415,6 +452,7 @@
         }
 
         pallets.push({
+          linha,
           etiqueta: proximaEtiquetaStr,
           referencia,
           bitola,
@@ -439,8 +477,12 @@
 
     function atualizarTabelaPallets() {
       const tbody = document.getElementById('tabelaPallets');
+      const filtro = document.getElementById('filtroLinhaTabela').value;
       tbody.innerHTML = '';
-      pallets.forEach((p, index) => {
+
+      const listaFiltrada = filtro === 'TODAS' ? pallets : pallets.filter(p => p.linha === filtro);
+
+      listaFiltrada.forEach((p, index) => {
         let badgeClass = 'badge-extra';
         if (p.classificacao === 'CACO') badgeClass = 'badge-caco';
         if (p.classificacao === 'COMERCIAL') badgeClass = 'badge-comercial';
@@ -448,6 +490,7 @@
         tbody.innerHTML += `
           <tr>
             <td>${index + 1}</td>
+            <td><span class="badge badge-linha">${p.linha || 'Linha 1'}</span></td>
             <td><strong>${p.etiqueta}</strong></td>
             <td>${p.referencia}</td>
             <td>${p.bitola} / ${p.tonalidade}</td>
@@ -462,20 +505,23 @@
     function atualizarKPIsPallets() {
       const totalPallets = pallets.length;
       const totalVolume = pallets.reduce((acc, p) => acc + p.quantidade, 0);
+      const volumeLinha1 = pallets.filter(p => p.linha === 'Linha 1').reduce((acc, p) => acc + p.quantidade, 0);
+      const volumeLinha2 = pallets.filter(p => p.linha === 'Linha 2').reduce((acc, p) => acc + p.quantidade, 0);
       const totalExtra = pallets.filter(p => p.classificacao === 'EXTRA').length;
       const totalComercial = pallets.filter(p => p.classificacao === 'COMERCIAL').length;
-      const totalCaco = pallets.filter(p => p.classificacao === 'CACO').length;
 
       document.getElementById('kpiPallets').innerText = totalPallets;
       document.getElementById('kpiVolume').innerText = totalVolume.toLocaleString('pt-BR');
+      document.getElementById('kpiLinha1').innerText = volumeLinha1.toLocaleString('pt-BR');
+      document.getElementById('kpiLinha2').innerText = volumeLinha2.toLocaleString('pt-BR');
       document.getElementById('kpiExtra').innerText = totalPallets > 0 ? ((totalExtra / totalPallets) * 100).toFixed(1) + '%' : '0%';
       document.getElementById('kpiComercial').innerText = totalPallets > 0 ? ((totalComercial / totalPallets) * 100).toFixed(1) + '%' : '0%';
-      document.getElementById('kpiCaco').innerText = totalCaco;
     }
 
     // --- LÓGICA DE DEFEITOS ---
     document.getElementById('defectForm').addEventListener('submit', function(e) {
       e.preventDefault();
+      const linha = document.getElementById('defLinha').value;
       const hora = document.getElementById('defHora').value;
       const ref = document.getElementById('defRef').value;
       const boas = parseInt(document.getElementById('pecasBoas').value) || 0;
@@ -484,7 +530,7 @@
       const qtdDefeito = parseInt(document.getElementById('qtdDefeito').value) || 0;
 
       inspecoesDefeitos.push({
-        hora, ref, boas, defeito,
+        linha, hora, ref, boas, defeito,
         detalheDefeitos: [{ tipo: tipoDefeito, qtd: qtdDefeito }]
       });
 
@@ -503,6 +549,7 @@
         tbody.innerHTML += `
           <tr>
             <td><strong>${d.hora}</strong></td>
+            <td><span class="badge badge-linha">${d.linha || 'Linha 1'}</span></td>
             <td>${d.ref}</td>
             <td>${d.boas}</td>
             <td style="color: var(--red); font-weight: bold;">${d.defeito}</td>
@@ -530,18 +577,17 @@
     function atualizarResumoFinal() {
       const totalPallets = pallets.length;
       const totalVol = pallets.reduce((acc, p) => acc + p.quantidade, 0);
+      const volLinha1 = pallets.filter(p => p.linha === 'Linha 1').reduce((acc, p) => acc + p.quantidade, 0);
+      const volLinha2 = pallets.filter(p => p.linha === 'Linha 2').reduce((acc, p) => acc + p.quantidade, 0);
       const totalExtra = pallets.filter(p => p.classificacao === 'EXTRA').length;
       const totalComercial = pallets.filter(p => p.classificacao === 'COMERCIAL').length;
-      const totalPecas = inspecoesDefeitos.reduce((acc, d) => acc + d.boas + d.defeito, 0);
-      const totalDefeitos = inspecoesDefeitos.reduce((acc, d) => acc + d.defeito, 0);
-      const pctDef = totalPecas > 0 ? ((totalDefeitos / totalPecas) * 100).toFixed(1) : '0.0';
 
       document.getElementById('sumPallets').innerText = totalPallets;
       document.getElementById('sumVolume').innerText = totalVol.toLocaleString('pt-BR') + ' M²';
+      document.getElementById('sumLinha1').innerText = volLinha1.toLocaleString('pt-BR') + ' M²';
+      document.getElementById('sumLinha2').innerText = volLinha2.toLocaleString('pt-BR') + ' M²';
       document.getElementById('sumPctExtra').innerText = totalPallets > 0 ? ((totalExtra / totalPallets) * 100).toFixed(1) + '%' : '0%';
       document.getElementById('sumPctComercial').innerText = totalPallets > 0 ? ((totalComercial / totalPallets) * 100).toFixed(1) + '%' : '0%';
-      document.getElementById('sumPecas').innerText = totalPecas;
-      document.getElementById('sumPctDef').innerText = pctDef + '%';
     }
 
     function abrirWhatsAppSimples() {
@@ -550,7 +596,7 @@
 
     // --- GERAÇÃO DE PDF E REDIRECIONAMENTO WHATSAPP ---
     function imprimirEFinalizar() {
-      const elementosParaOcultar = document.querySelectorAll('.nav-tabs, .btn-add, .btn-action, #palletForm, #defectForm, .no-print');
+      const elementosParaOcultar = document.querySelectorAll('.nav-tabs, .btn-add, .btn-action, #palletForm, #defectForm, .no-print, .table-filter-bar');
       elementosParaOcultar.forEach(el => el.style.display = 'none');
 
       const turno = document.getElementById('selectTurno').value;
