@@ -109,7 +109,7 @@
       </label>
       <span>|</span>
       <label>Responsável:
-        <input type="text" id="inputOperador" value="André" style="width: 120px;">
+        <input type="text" id="inputOperador" value="    " style="width: 120px;">
       </label>
     </div>
   </header>
@@ -387,8 +387,8 @@
       </div>
 
       <div class="no-print" style="margin: 20px 0; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-        <button class="btn-action btn-gray" onclick="imprimirEFinalizar()">
-          📄 Baixar PDF & Abrir WhatsApp
+        <button class="btn-action btn-gray" onclick="baixarPDFApenas()">
+          📄 Baixar PDF
         </button>
         <button class="btn-action btn-green" onclick="abrirWhatsAppSimples()">
           📲 Abrir WhatsApp Web / App
@@ -590,12 +590,10 @@
       document.getElementById('sumPctComercial').innerText = totalPallets > 0 ? ((totalComercial / totalPallets) * 100).toFixed(1) + '%' : '0%';
     }
 
-    function abrirWhatsAppSimples() {
-      window.open('https://api.whatsapp.com/send', '_blank');
-    }
+    // --- AÇÕES DOS 3 BOTÕES ---
 
-    // --- GERAÇÃO DE PDF E REDIRECIONAMENTO WHATSAPP ---
-    function imprimirEFinalizar() {
+    // Botão 1: Baixar Apenas o PDF
+    function baixarPDFApenas() {
       const elementosParaOcultar = document.querySelectorAll('.nav-tabs, .btn-add, .btn-action, #palletForm, #defectForm, .no-print, .table-filter-bar');
       elementosParaOcultar.forEach(el => el.style.display = 'none');
 
@@ -613,25 +611,16 @@
 
       html2pdf().set(opcoes).from(document.body).save().then(() => {
         elementosParaOcultar.forEach(el => el.style.display = '');
-
-        setTimeout(() => {
-          alert("📄 PDF baixado com sucesso na sua pasta 'Downloads'!");
-
-          setTimeout(() => {
-            alert("📲 Clique em OK para abrir o WhatsApp e anexar o arquivo PDF baixado.");
-            
-            abrirWhatsAppSimples();
-
-            setTimeout(() => {
-              if (confirm("Deseja ZERAR os dados do sistema agora para dar início ao próximo turno?")) {
-                zerarTurno();
-              }
-            }, 800);
-          }, 400);
-        }, 300);
+        alert("📄 PDF baixado com sucesso na sua pasta 'Downloads'!");
       });
     }
 
+    // Botão 2: Abrir WhatsApp
+    function abrirWhatsAppSimples() {
+      window.open('https://api.whatsapp.com/send', '_blank');
+    }
+
+    // Botão 3: Zerar Turno
     function confirmarZerarTurno() {
       if (confirm("Tem certeza que deseja zerar todos os lançamentos do turno atual?")) {
         zerarTurno();
