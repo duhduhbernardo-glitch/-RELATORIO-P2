@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — HIIT com Guiador e Cadência dos Pés</title>
+    <title>Treino 3D — HIIT com Guidão e Cadência dos Pés</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
@@ -17,65 +17,67 @@
             font-size:0.65rem; color:#81C784; z-index:2; pointer-events:none;
         }
 
-        /* SETAS INDICADORAS DOS PÉS (ESQUERDA E DIREITA) */
+        /* SETAS INDICADORAS DOS PÉS (GARANTIDAS NO TOPO DA CAMADA) */
         .painel-seta {
-            position: absolute; top: 50%; transform: translateY(-50%);
-            width: 80px; height: 130px; background: rgba(0, 0, 0, 0.8);
-            border: 2px solid #444; border-radius: 12px; z-index: 5;
+            position: fixed; top: 50%; transform: translateY(-50%);
+            width: 75px; height: 120px; background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #555; border-radius: 12px; z-index: 100;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             backdrop-filter: blur(6px); transition: all 0.15s ease-out;
+            pointer-events: none;
         }
-        .painel-seta.esquerda { left: 15px; }
-        .painel-seta.direita { right: 15px; }
+        .painel-seta.esquerda { left: 10px; }
+        .painel-seta.direita { right: 10px; }
 
-        .seta-rotulo { font-size: 0.65rem; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 4px; }
-        .seta-icone { font-size: 2.8rem; transition: transform 0.15s ease, color 0.15s ease; }
-        .seta-status { font-size: 0.7rem; font-weight: bold; margin-top: 4px; }
+        .seta-rotulo { font-size: 0.6rem; font-weight: bold; color: #aaa; text-transform: uppercase; margin-bottom: 2px; }
+        .seta-icone { font-size: 2.5rem; transition: transform 0.15s ease, color 0.15s ease; line-height: 1; }
+        .seta-status { font-size: 0.65rem; font-weight: bold; margin-top: 4px; }
 
-        /* ESTADO: PÉ EM CIMA (Puxando/Subindo) */
+        /* ESTADO: PÉ EM CIMA */
         .painel-seta.ativo-cima {
             border-color: #2196F3;
-            box-shadow: 0 0 15px rgba(33, 150, 243, 0.7);
+            box-shadow: 0 0 18px rgba(33, 150, 243, 0.8);
+            background: rgba(10, 30, 50, 0.9);
         }
-        .painel-seta.ativo-cima .seta-icone { color: #2196F3; transform: translateY(-8px); }
+        .painel-seta.ativo-cima .seta-icone { color: #2196F3; transform: translateY(-5px); }
         .painel-seta.ativo-cima .seta-status { color: #2196F3; }
 
-        /* ESTADO: PÉ EM BAIXO (Empurrando/Descendo) */
+        /* ESTADO: PÉ EM BAIXO */
         .painel-seta.ativo-baixo {
-            border-color: #555; opacity: 0.5;
+            border-color: #444; opacity: 0.5;
         }
-        .painel-seta.ativo-baixo .seta-icone { color: #666; transform: translateY(8px); }
+        .painel-seta.ativo-baixo .seta-icone { color: #666; transform: translateY(5px); }
         .painel-seta.ativo-baixo .seta-status { color: #777; }
 
         /* HUD DO TREINADOR */
         .hud-treinador {
             position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: 480px; background: rgba(0, 0, 0, 0.85);
-            border: 2px solid #2196F3; border-radius: 10px; padding: 10px 14px;
-            z-index: 3; display: flex; align-items: center; gap: 12px;
+            width: 85%; max-width: 480px; background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #2196F3; border-radius: 10px; padding: 8px 12px;
+            z-index: 10; display: flex; align-items: center; gap: 10px;
             box-shadow: 0 0 15px rgba(0,0,0,0.5); backdrop-filter: blur(5px);
             transition: border-color 0.5s;
         }
-        .treinador-avatar { font-size: 2rem; }
+        .treinador-avatar { font-size: 1.8rem; }
         .treinador-info { display: flex; flex-direction: column; }
-        .treinador-nome { font-size: 0.65rem; text-transform: uppercase; color: #aaa; letter-spacing: 1px; }
-        .treinador-fala { font-size: 0.85rem; font-weight: bold; color: #fff; }
+        .treinador-nome { font-size: 0.6rem; text-transform: uppercase; color: #aaa; letter-spacing: 1px; }
+        .treinador-fala { font-size: 0.8rem; font-weight: bold; color: #fff; }
 
         .painel-controle { 
             position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
             width:90%; max-width:420px; background:rgba(10, 10, 12, 0.85); 
-            border-radius:12px; padding:10px 14px; border:2px solid #2196F3; 
-            z-index:2; backdrop-filter:blur(6px); display:flex; flex-direction:column; gap:8px;
+            border-radius:12px; padding:8px 12px; border:2px solid #2196F3; 
+            z-index:10; backdrop-filter:blur(6px); display:flex; flex-direction:column; gap:6px;
             transition: border-color 0.5s ease;
         }
 
-        .secao-label { font-size:0.6rem; color:#aaa; text-transform:uppercase; letter-spacing:1px; }
+        .secao-label { font-size:0.55rem; color:#aaa; text-transform:uppercase; letter-spacing:1px; }
 
         .opcoes-tempo { display:flex; gap:4px; overflow-x:auto; padding-bottom:2px; }
         .opcoes-tempo::-webkit-scrollbar { display:none; }
 
         .botao-tempo { 
-            padding:4px 10px; font-size:0.7rem; font-weight:bold; 
+            padding:4px 8px; font-size:0.65rem; font-weight:bold; 
             border:1px solid #333; border-radius:4px; background:rgba(0,0,0,0.6); 
             color:#ccc; cursor:pointer; white-space:nowrap; transition:all 0.3s;
         }
@@ -83,21 +85,21 @@
         .botao-tempo.selecionado { border-color:#fff; background:rgba(255,255,255,0.2); color:#fff; }
 
         .indicador-faixa {
-            font-size: 0.75rem; font-weight: bold; text-align: center;
-            padding: 4px; border-radius: 4px; background: rgba(255,255,255,0.1);
+            font-size: 0.7rem; font-weight: bold; text-align: center;
+            padding: 3px; border-radius: 4px; background: rgba(255,255,255,0.1);
         }
 
-        .dados-treino { display:flex; justify-content:space-between; text-align:center; background:rgba(0,0,0,0.4); padding:6px 8px; border-radius:6px; }
+        .dados-treino { display:flex; justify-content:space-between; text-align:center; background:rgba(0,0,0,0.4); padding:4px 6px; border-radius:6px; }
         .dado { flex:1; }
-        .dado span { font-size:0.85rem; font-weight:bold; color:#2196F3; font-family:monospace; transition:color 0.5s; }
-        .dado label { font-size:0.55rem; color:#888; display:block; }
+        .dado span { font-size:0.8rem; font-weight:bold; color:#2196F3; font-family:monospace; transition:color 0.5s; }
+        .dado label { font-size:0.5rem; color:#888; display:block; }
 
-        .tempo-restante { font-size:1.2rem; font-weight:bold; color:#2196F3; font-family:monospace; text-align:center; transition:color 0.5s; }
-        .barra-progresso { width:100%; height:5px; background:#222; border-radius:3px; overflow:hidden; }
+        .tempo-restante { font-size:1.1rem; font-weight:bold; color:#2196F3; font-family:monospace; text-align:center; transition:color 0.5s; }
+        .barra-progresso { width:100%; height:4px; background:#222; border-radius:3px; overflow:hidden; }
         .progresso { height:100%; background:#2196F3; width:0%; transition:width 0.3s, background-color 0.5s; }
 
         .botoes-acao { display:flex; gap:6px; justify-content:center; }
-        .btn { padding:6px 12px; font-size:0.7rem; font-weight:bold; border:none; border-radius:4px; cursor:pointer; }
+        .btn { padding:5px 10px; font-size:0.65rem; font-weight:bold; border:none; border-radius:4px; cursor:pointer; }
         .btn.iniciar { background:#4CAF50; color:white; }
         .btn.parar { background:#f44336; color:white; }
         .btn.reiniciar { background:#ff9800; color:white; }
@@ -108,7 +110,7 @@
 <body>
 
     <div id="canvas-container">
-        <div class="tag-cenario">⚡ Ritmo HIIT 3D — Setas dos Pés e Guidão Móvel</div>
+        <div class="tag-cenario">⚡ Ritmo HIIT 3D</div>
     </div>
 
     <!-- SETA ESQUERDA (PÉ ESQUERDO) -->
@@ -130,7 +132,7 @@
         <div class="treinador-avatar">🚴‍♂️</div>
         <div class="treinador-info">
             <div class="treinador-nome">Coach HIIT Virtual</div>
-            <div class="treinador-fala" id="falaTreinador">Siga o ritmo das setas nas laterais!</div>
+            <div class="treinador-fala" id="falaTreinador">Escolha o tempo e clique em Iniciar!</div>
         </div>
     </div>
 
@@ -166,9 +168,9 @@
 
     <script>
         const cicloHIIT = [
-            { zona: 'z1', duracao: 60, fala: "Aquecimento Z1. Mantenha os pés no ritmo das setas!" },
+            { zona: 'z1', duracao: 60, fala: "Aquecimento Z1. Siga o ritmo das setas nas laterais!" },
             { zona: 'z4', duracao: 30, fala: "TIRO Z4! Acompanhe as setas acelerando!" },
-            { zona: 'z2', duracao: 60, fala: "Recuperação Z2. Mantenha o ritmo ritmado." },
+            { zona: 'z2', duracao: 60, fala: "Recuperação Z2. Mantenha o fluxo constante." },
             { zona: 'z3', duracao: 30, fala: "ACELERA! Siga a alternância dos pés!" },
             { zona: 'z1', duracao: 60, fala: "Respire fundo e recupere energia." },
             { zona: 'z4', duracao: 30, fala: "SPRINT FINAL! Força total acompanhando o ritmo!" }
@@ -192,7 +194,6 @@
             }
         }
 
-        /* THREE.JS SETUP */
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -211,7 +212,6 @@
         headlight.target.position.set(0, 0, -20);
         scene.add(headlight); scene.add(headlight.target);
 
-        /* POV GUIDÃO */
         const povGroup = new THREE.Group();
         scene.add(povGroup);
         povGroup.position.x = zonas.z1.xPos;
@@ -235,7 +235,6 @@
         const display = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), displayMat);
         display.position.set(0, 1.0, -0.48); display.rotation.x = -Math.PI / 6; povGroup.add(display);
 
-        /* PISTA E FAIXAS */
         const roadMat = new THREE.MeshStandardMaterial({ color: 0x111116, roughness: 0.8 });
         const road = new THREE.Mesh(new THREE.PlaneGeometry(10, 200), roadMat);
         road.rotation.x = -Math.PI / 2; road.position.set(0, 0, -90); scene.add(road);
@@ -262,7 +261,6 @@
             });
         }
 
-        /* CONTROLES DA INTERFACE */
         const botoesTempo = document.querySelectorAll('.botao-tempo');
         const painelControle = document.getElementById('painelControle');
         const hudTreinador = document.getElementById('hudTreinador');
@@ -278,7 +276,6 @@
         const elVel = document.getElementById('vel');
         const elRpm = document.getElementById('rpm');
 
-        /* ELEMENTOS DAS SETAS DOS PÉS */
         const setaEsqBox = document.getElementById('setaEsqBox');
         const setaDirBox = document.getElementById('setaDirBox');
         const setaEsqIcone = document.getElementById('setaEsqIcone');
@@ -413,7 +410,6 @@
             else document.exitFullscreen();
         });
 
-        /* ANIMATE */
         let step = 0;
         function animate() {
             requestAnimationFrame(animate);
@@ -431,19 +427,15 @@
                     if (line.position.z > 5) line.position.z = -195;
                 });
 
-                // Movimento do corpo e guidão
                 camera.position.y = 1.25 + Math.sin(step * 2) * 0.015;
                 povGroup.position.y = Math.sin(step * 2) * 0.008;
 
-                // BALANÇO DO GUIDÃO NO RITMO DA PEDALADA
                 povGroup.rotation.z = Math.sin(step) * 0.05;
                 povGroup.rotation.y = Math.cos(step) * 0.02;
 
-                // ATUALIZAÇÃO DAS SETAS DOS PÉS (ALTERNÂNCIA CIMA / BAIXO)
                 const alternanciaPedal = Math.sin(step);
 
                 if (alternanciaPedal > 0) {
-                    // Pé Esquerdo Cima, Pé Direito Baixo
                     setaEsqBox.className = "painel-seta esquerda ativo-cima";
                     setaEsqIcone.textContent = "⬆";
                     setaEsqStatus.textContent = "CIMA";
@@ -452,7 +444,6 @@
                     setaDirIcone.textContent = "⬇";
                     setaDirStatus.textContent = "BAIXO";
                 } else {
-                    // Pé Direito Cima, Pé Esquerdo Baixo
                     setaEsqBox.className = "painel-seta esquerda ativo-baixo";
                     setaEsqIcone.textContent = "⬇";
                     setaEsqStatus.textContent = "BAIXO";
