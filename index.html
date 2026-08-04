@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — Com Alerta Sonoro</title>
+    <title>Treino 3D — Com Contagem Regressiva Sonora</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
@@ -17,7 +17,6 @@
             font-size:0.65rem; color:#81C784; z-index:2; pointer-events:none;
         }
 
-        /* PAINEL MINIATURA */
         .painel-controle { 
             position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
             width:90%; max-width:400px; background:rgba(10, 10, 12, 0.65); 
@@ -59,7 +58,6 @@
         <div class="tag-cenario" id="nomeCenario">🌲 Cyber Neon</div>
     </div>
 
-    <!-- PAINEL MINI -->
     <div class="painel-controle">
         <div class="opcoes-tempo">
             <button class="botao-tempo" data-segundos="300">5m</button>
@@ -91,17 +89,43 @@
     </div>
 
     <script>
-        /* FUNÇÃO PARA TOCAR SOM DE TEMPO FINALIZADO (Sintetizador Web Audio API) */
-        function tocarSomFimTreino() {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
+        /* SINTETIZADOR DE ÁUDIO WEB AUDIO API */
+        let audioCtx = null;
 
-            // Primeiro Beep
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            return audioCtx;
+        }
+
+        // Som de bip curto para os últimos 3 segundos
+        function tocarSomBipRegressivo() {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, ctx.currentTime); // Nota A4
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.15);
+        }
+
+        // Som duplo de encerramento
+        function tocarSomFimTreino() {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+
             const osc1 = ctx.createOscillator();
             const gain1 = ctx.createGain();
             osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // Nota D5
+            osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
             gain1.gain.setValueAtTime(0.3, ctx.currentTime);
             gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
             osc1.connect(gain1);
@@ -109,11 +133,10 @@
             osc1.start(ctx.currentTime);
             osc1.stop(ctx.currentTime + 0.3);
 
-            // Segundo Beep (Mais agudo e longo)
             const osc2 = ctx.createOscillator();
             const gain2 = ctx.createGain();
             osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(880, ctx.currentTime + 0.35); // Nota A5
+            osc2.frequency.setValueAtTime(880, ctx.currentTime + 0.35);
             gain2.gain.setValueAtTime(0.4, ctx.currentTime + 0.35);
             gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.9);
             osc2.connect(gain2);
@@ -281,11 +304,16 @@
                 elRpm.textContent = Math.round(75 + Math.sin(tempoRestante / 3) * 5);
                 atualizaTela();
                 
+                // CONTAGEM REGRESSIVA DOS ÚLTIMOS 3 SEGUNDOS
+                if (tempoRestante >= 1 && tempoRestante <= 3) {
+                    tocarSomBipRegressivo();
+                }
+
                 // QUANDO O TEMPO ACABAR
                 if (tempoRestante <= 0) {
                     clearInterval(cronometro);
                     treinoAtivo = false;
-                    tocarSomFimTreino(); // Toca o alerta sonoro duplo
+                    tocarSomFimTreino();
                     btnIniciar.disabled = btnParar.disabled = true;
                 }
             }, 1000);
