@@ -2,60 +2,84 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Treino 3D — Cenários Aleatórios | Simulador POV</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Arial, sans-serif; }
-        :root { --verde:#4CAF50; --escuro:#0a0a0c; --cinza:rgba(22, 22, 26, 0.85); --texto:#e0e0e0; --destaque:#81C784; }
+        :root { --verde:#4CAF50; --escuro:#0a0a0c; --cinza:rgba(18, 18, 22, 0.75); --texto:#e0e0e0; --destaque:#81C784; }
         body, html { width:100%; height:100%; overflow:hidden; background:var(--escuro); color:var(--texto); }
 
         /* CANVAS 3D EM TELA CHEIA */
         #canvas-container { width:100vw; height:100vh; position:absolute; top:0; left:0; z-index:1; }
 
         .tag-cenario { 
-            position:absolute; top:20px; left:20px; 
-            background:rgba(0,0,0,0.7); padding:8px 15px; border-radius:20px; 
-            font-size:0.85rem; color:#81C784; border:1px solid var(--verde); 
+            position:absolute; top:12px; left:12px; 
+            background:rgba(0,0,0,0.6); padding:6px 12px; border-radius:15px; 
+            font-size:0.75rem; color:#81C784; border:1px solid rgba(76,175,80,0.5); 
             pointer-events:none; z-index:2; backdrop-filter:blur(5px);
         }
 
-        /* PAINEL DE CONTROLE FIXADO NA PARTE INFERIOR */
+        /* PAINEL COMPACTO (Foco na visão 3D) */
         .painel-controle { 
-            position:absolute; bottom:15px; left:50%; transform:translateX(-50%);
-            width:95%; max-width:1100px; background:var(--cinza); 
-            border-radius:18px; padding:15px 20px; border:2px solid var(--verde); 
-            box-shadow:0 0 25px rgba(76,175,80,0.3); z-index:2; 
-            backdrop-filter:blur(10px); display:flex; flex-direction:column; gap:10px;
+            position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
+            width:92%; max-width:650px; background:var(--cinza); 
+            border-radius:12px; padding:10px 14px; border:1px solid rgba(76,175,80,0.4); 
+            box-shadow:0 4px 20px rgba(0,0,0,0.5); z-index:2; 
+            backdrop-filter:blur(8px); display:flex; flex-direction:column; gap:6px;
         }
 
-        .titulo-painel { font-size:1.1rem; color:var(--destaque); text-align:center; }
+        .titulo-painel { font-size:0.8rem; color:var(--destaque); text-align:center; text-transform:uppercase; letter-spacing:0.5px; }
 
-        .opcoes-tempo { display:flex; justify-content:center; gap:6px; flex-wrap:wrap; }
-        .botao-tempo { padding:6px 12px; font-size:0.85rem; font-weight:bold; border:2px solid #333; border-radius:8px; background:rgba(0,0,0,0.6); color:var(--texto); cursor:pointer; transition:0.2s; text-align:center; }
-        .botao-tempo.selecionado { border-color:var(--verde); background:rgba(76,175,80,0.25); color:var(--verde); box-shadow:0 0 10px rgba(76,175,80,0.3); }
+        /* BOTOES DE TEMPO MAIS DISCRETOS E SCROLLAVEL EM MOBILE */
+        .opcoes-tempo { 
+            display:flex; justify-content:center; gap:4px; 
+            overflow-x:auto; padding-bottom:2px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .opcoes-tempo::-webkit-scrollbar { height:3px; }
+        .opcoes-tempo::-webkit-scrollbar-thumb { background:var(--verde); border-radius:3px; }
+
+        .botao-tempo { 
+            padding:3px 8px; font-size:0.75rem; font-weight:bold; 
+            border:1px solid #444; border-radius:6px; background:rgba(0,0,0,0.5); 
+            color:var(--texto); cursor:pointer; transition:0.2s; white-space:nowrap;
+        }
+        .botao-tempo.selecionado { border-color:var(--verde); background:rgba(76,175,80,0.3); color:var(--verde); }
         .botao-tempo:hover { border-color:var(--destaque); }
 
-        .dados-treino { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; }
-        @media(max-width:768px){ .dados-treino { grid-template-columns:repeat(2, 1fr); } }
+        /* PAINEL DE METRICAS EM LINHA */
+        .dados-treino { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
 
-        .dado { background:rgba(0,0,0,0.6); padding:8px; border-radius:8px; text-align:center; border-left:4px solid var(--verde); }
-        .dado span { font-size:1.2rem; font-weight:bold; color:var(--verde); display:block; font-family:monospace; }
-        .dado label { font-size:0.75rem; color:#aaa; }
+        .dado { background:rgba(0,0,0,0.4); padding:4px; border-radius:6px; text-align:center; border-left:2px solid var(--verde); }
+        .dado span { font-size:0.95rem; font-weight:bold; color:var(--verde); display:block; font-family:monospace; }
+        .dado label { font-size:0.65rem; color:#aaa; display:block; }
 
-        .contador { text-align:center; padding:8px; background:rgba(0,0,0,0.6); border-radius:8px; border:1px solid var(--verde); }
-        .tempo-restante { font-size:1.8rem; font-weight:bold; color:var(--verde); font-family: monospace; }
-        .barra-progresso { width:100%; height:6px; background:#333; border-radius:3px; overflow:hidden; margin-top:4px; }
+        /* CONTADOR E STATUS COMPACTOS */
+        .contador { text-align:center; padding:4px 8px; background:rgba(0,0,0,0.4); border-radius:6px; border:1px solid rgba(76,175,80,0.3); }
+        .tempo-restante { font-size:1.2rem; font-weight:bold; color:var(--verde); font-family:monospace; line-height:1; }
+        .barra-progresso { width:100%; height:4px; background:#333; border-radius:2px; overflow:hidden; margin-top:3px; }
         .progresso { height:100%; background:linear-gradient(90deg, var(--verde), var(--destaque)); width:0%; transition:width 0.3s; }
-        .status { font-size:0.8rem; color:#aaa; margin-top:4px; }
+        .status { font-size:0.7rem; color:#aaa; margin-top:2px; }
 
-        .botoes-acao { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
-        .btn { padding:8px 16px; font-size:0.85rem; font-weight:bold; border:none; border-radius:8px; cursor:pointer; transition:0.2s; }
+        /* BOTOES DE AÇÃO EM TAMANHO REDUZIDO */
+        .botoes-acao { display:flex; gap:6px; justify-content:center; }
+        .btn { padding:5px 12px; font-size:0.75rem; font-weight:bold; border:none; border-radius:6px; cursor:pointer; transition:0.2s; }
         .btn.iniciar { background:var(--verde); color:white; }
         .btn.parar { background:#f44336; color:white; }
         .btn.reiniciar { background:#ff9800; color:white; }
         .btn.tela-cheia { background:#2196F3; color:white; }
         .btn:disabled { opacity:0.3; cursor:not-allowed; }
+
+        /* AJUSTES RESPONSIVOS PARA SMARTPHONES */
+        @media(max-width:600px){
+            .painel-controle { width:96%; padding:8px; bottom:8px; gap:4px; }
+            .dado span { font-size:0.85rem; }
+            .dado label { font-size:0.6rem; }
+            .tempo-restante { font-size:1.1rem; }
+            .btn { padding:4px 8px; font-size:0.7rem; }
+            .opcoes-tempo { justify-content:flex-start; }
+        }
     </style>
 </head>
 <body>
@@ -65,9 +89,8 @@
         <div class="tag-cenario" id="nomeCenario">🌲 Cenário: Noturno Clássico</div>
     </div>
 
-    <!-- PAINEL FIXO NA PARTE INFERIOR -->
+    <!-- PAINEL FIXO ULTRA COMPACTO -->
     <div class="painel-controle">
-        <h3 class="titulo-painel">⏱️ Selecione a Duração do Treino</h3>
         <div class="opcoes-tempo">
             <button class="botao-tempo" data-segundos="300">5 min</button>
             <button class="botao-tempo" data-segundos="600">10 min</button>
@@ -80,16 +103,16 @@
         </div>
 
         <div class="dados-treino">
-            <div class="dado"><span id="cal">0</span><label>Calorias (Kcal)</label></div>
-            <div class="dado"><span id="km">0.00</span><label>Distância (km)</label></div>
-            <div class="dado"><span id="vel">22.5</span><label>Velocidade (km/h)</label></div>
-            <div class="dado"><span id="rpm">75</span><label>Cadência (RPM)</label></div>
+            <div class="dado"><span id="cal">0</span><label>Kcal</label></div>
+            <div class="dado"><span id="km">0.00</span><label>Km</label></div>
+            <div class="dado"><span id="vel">22.5</span><label>Km/h</label></div>
+            <div class="dado"><span id="rpm">75</span><label>RPM</label></div>
         </div>
 
         <div class="contador">
             <div class="tempo-restante" id="tempo">00:00:00</div>
             <div class="barra-progresso"><div class="progresso" id="barra"></div></div>
-            <div class="status" id="status">Escolha o tempo para sortear o cenário 3D</div>
+            <div class="status" id="status">Escolha a duração para sortear o cenário</div>
         </div>
 
         <div class="botoes-acao">
@@ -110,6 +133,7 @@
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
         /* ILUMINAÇÃO GERAL E FAROL DO GUIDÃO */
@@ -122,7 +146,7 @@
         scene.add(headlight);
         scene.add(headlight.target);
 
-        /* GUIDÃO DO CICLISTA (FIXO EM POV) */
+        /* GUIDÃO DO CICLISTA (POV) */
         const povGroup = new THREE.Group();
         scene.add(povGroup);
 
@@ -149,7 +173,6 @@
         gripR.position.set(-0.3, 0.95, -0.5);
         povGroup.add(gripR);
 
-        // Ciclocomputador Digital no Guidão
         const screenGeo = new THREE.BoxGeometry(0.12, 0.08, 0.02);
         const screenMat = new THREE.MeshBasicMaterial({ color: 0x4CAF50 });
         const display = new THREE.Mesh(screenGeo, screenMat);
@@ -201,7 +224,7 @@
             poles.push(poleL, lampL, poleR, lampR);
         }
 
-        /* BANCO DE CENÁRIOS ALEATÓRIOS */
+        /* CENÁRIOS ALEATÓRIOS */
         const temasCenarios = [
             { nome: "🌃 Circuito Cyber Neon", bg: 0x060411, road: 0x090814, line: 0x00ffff, light: 0xff00ff, fog: 0.02 },
             { nome: "🌅 Pôr do Sol na Rodovia", bg: 0x2b1108, road: 0x1c1716, line: 0xffaa00, light: 0xff4500, fog: 0.015 },
@@ -222,7 +245,7 @@
             document.getElementById('nomeCenario').textContent = `🎮 Cenário: ${tema.nome}`;
         }
 
-        gerarCenarioAleatorio(); // Cenário Inicial
+        gerarCenarioAleatorio();
 
         /* LÓGICA DO CONTROLE DO TREINO */
         const botoesTempo = document.querySelectorAll('.botao-tempo');
@@ -248,10 +271,10 @@
                 tempoTotal = parseInt(btn.dataset.segundos);
                 tempoRestante = tempoTotal;
                 
-                gerarCenarioAleatorio(); // Sorteia um novo cenário a cada tempo escolhido
+                gerarCenarioAleatorio();
                 atualizaTela();
                 btnIniciar.disabled = false;
-                statusEl.textContent = `Tempo configurado: ${btn.textContent} | Cenário gerado!`;
+                statusEl.textContent = `Tempo: ${btn.textContent} | Cenário Gerado!`;
             });
         });
 
@@ -277,7 +300,7 @@
             btnIniciar.disabled = true;
             btnParar.disabled = false;
             btnReiniciar.disabled = false;
-            statusEl.textContent = "🔥 Pedala! Treino 3D em andamento...";
+            statusEl.textContent = "🔥 Treino em andamento...";
         });
 
         function iniciarLoop() {
@@ -287,7 +310,6 @@
                 calorias += calPorSegundo;
                 distancia += vel / 3600;
 
-                // Dinâmica leve no ritmo de pedalada
                 const flutuacao = Math.sin(tempoRestante / 3) * 5;
                 elRpm.textContent = Math.round(75 + flutuacao);
 
@@ -296,7 +318,7 @@
                 if (tempoRestante <= 0) {
                     clearInterval(cronometro);
                     treinoAtivo = false;
-                    statusEl.textContent = "🏆 Excelente! Treino concluído!";
+                    statusEl.textContent = "🏆 Treino concluído!";
                     btnIniciar.disabled = btnParar.disabled = true;
                 }
             }, 1000);
@@ -307,12 +329,12 @@
                 clearInterval(cronometro);
                 treinoAtivo = false;
                 btnParar.textContent = "Continuar";
-                statusEl.textContent = "⏸️ Treino Pausado";
+                statusEl.textContent = "⏸️ Pausado";
             } else {
                 treinoAtivo = true;
                 iniciarLoop();
                 btnParar.textContent = "Pausar";
-                statusEl.textContent = "🔥 Treino Retomado!";
+                statusEl.textContent = "🔥 Em andamento...";
             }
         });
 
@@ -322,13 +344,13 @@
             calorias = 0;
             distancia = 0;
             treinoAtivo = false;
-            gerarCenarioAleatorio(); // Troca o cenário ao reiniciar
+            gerarCenarioAleatorio();
             atualizaTela();
             btnIniciar.disabled = false;
             btnParar.disabled = true;
             btnReiniciar.disabled = true;
             btnParar.textContent = "Pausar";
-            statusEl.textContent = "Sessão e cenário reiniciados.";
+            statusEl.textContent = "Reiniciado.";
         });
 
         btnTela.addEventListener('click', () => {
@@ -339,15 +361,13 @@
             }
         });
 
-        /* RENDER E ANIMAÇÃO DO MOVIMENTO 3D */
+        /* RENDER E ANIMAÇÃO 3D */
         let step = 0;
         function animate() {
             requestAnimationFrame(animate);
 
             if (treinoAtivo) {
                 step += 0.05;
-
-                // Velocidade de deslocamento dos elementos do cenário
                 const speed = 0.4;
 
                 trackLines.forEach(line => {
@@ -360,7 +380,6 @@
                     if (poles[i].position.z > 5) poles[i].position.z = -195;
                 }
 
-                // Efeito do movimento do ciclista pedalando (POV)
                 camera.position.y = 1.25 + Math.sin(step * 2) * 0.015;
                 povGroup.position.x = Math.cos(step) * 0.008;
                 povGroup.position.y = Math.sin(step * 2) * 0.008;
