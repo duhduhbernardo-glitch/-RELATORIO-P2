@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — Treinador Virtual Autônomo</title>
+    <title>Treino 3D — Treinador Virtual & Faixa de Ritmo</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
@@ -86,8 +86,8 @@
     <div class="hud-treinador" id="hudTreinador">
         <div class="treinador-avatar">🚴‍♂️</div>
         <div class="treinador-info">
-            <div class="treinador-nome">Coach Virtual (Modo Automático)</div>
-            <div class="treinador-fala" id="falaTreinador">Iniciando treino guiado pelo Coach...</div>
+            <div class="treinador-nome">Coach Virtual</div>
+            <div class="treinador-fala" id="falaTreinador">Selecione o tempo e a zona para iniciar seu treino!</div>
         </div>
     </div>
 
@@ -95,14 +95,14 @@
         <div class="secao-label">Duração:</div>
         <div class="opcoes-tempo">
             <button class="botao-tempo" data-segundos="300">5m</button>
-            <button class="botao-tempo selecionado" data-segundos="600">10m</button>
+            <button class="botao-tempo" data-segundos="600">10m</button>
             <button class="botao-tempo" data-segundos="900">15m</button>
             <button class="botao-tempo" data-segundos="1200">20m</button>
             <button class="botao-tempo" data-segundos="1800">30m</button>
             <button class="botao-tempo" data-segundos="3600">60m</button>
         </div>
 
-        <div class="secao-label">Zona de Esforço Atual:</div>
+        <div class="secao-label">Zona de Esforço:</div>
         <div class="opcoes-zona">
             <button class="botao-zona selecionado" data-zona="z1" data-vel="18" data-rpm="65" data-cor="#2196F3">Z1 Aquecimento</button>
             <button class="botao-zona" data-zona="z2" data-vel="25" data-rpm="80" data-cor="#4CAF50">Z2 Moderado</button>
@@ -117,24 +117,18 @@
             <div class="dado"><span id="rpm">65</span><label>RPM</label></div>
         </div>
 
-        <div class="tempo-restante" id="tempo">00:10:00</div>
+        <div class="tempo-restante" id="tempo">00:00:00</div>
         <div class="barra-progresso"><div class="progresso" id="barra"></div></div>
 
         <div class="botoes-acao">
             <button class="btn iniciar" id="btnIniciar" disabled>Iniciar</button>
-            <button class="btn parar" id="btnParar">Pausar</button>
-            <button class="btn reiniciar" id="btnReiniciar">Reiniciar</button>
+            <button class="btn parar" id="btnParar" disabled>Pausar</button>
+            <button class="btn reiniciar" id="btnReiniciar" disabled>Reiniciar</button>
             <button class="btn tela-cheia" id="btnTela">Tela Cheia</button>
         </div>
     </div>
 
     <script>
-        let audioPermitido = false;
-
-        // Ativa o áudio no primeiro clique/toque do usuário na tela
-        window.addEventListener('click', () => { audioPermitido = true; }, { once: true });
-        window.addEventListener('touchstart', () => { audioPermitido = true; }, { once: true });
-
         /* TREINADOR VIRTUAL (SISTEMA DE VOZ E DICAS) */
         const falasTreinador = {
             z1: [
@@ -143,9 +137,9 @@
                 "Relaxe os ombros e mantenha a cadência em 65 RPM."
             ],
             z2: [
-                "Aumentando ritmo para Z2! Ótimo para queimar gordura e ganhar resistência.",
+                "Ritmo de cruzeiro! Z2 é perfeita para queimar gordura e ganhar resistência.",
                 "Mantenha uma força constante nos pedais.",
-                "Cadência subindo para 80 RPM. Continue firme!"
+                "Cadência em torno de 80 RPM. Continue firme!"
             ],
             z3: [
                 "Entrando na Z3! Sinta o ritmo acelerar e o coração trabalhar.",
@@ -161,7 +155,7 @@
 
         function falarTreinador(texto) {
             document.getElementById('falaTreinador').textContent = texto;
-            if (audioPermitido && 'speechSynthesis' in window) {
+            if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const fala = new SpeechSynthesisUtterance(texto);
                 fala.lang = 'pt-BR';
@@ -216,6 +210,7 @@
         const road = new THREE.Mesh(new THREE.PlaneGeometry(12, 200), roadMat);
         road.rotation.x = -Math.PI / 2; road.position.set(0, 0, -90); scene.add(road);
 
+        // FAIXA CENTRAL DE COR DA ZONA
         const faixaCentralMat = new THREE.MeshBasicMaterial({ color: 0x2196F3 });
         const faixaCentral = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 200), faixaCentralMat);
         faixaCentral.rotation.x = -Math.PI / 2; faixaCentral.position.set(0, 0.005, -90); scene.add(faixaCentral);
@@ -283,7 +278,7 @@
         const elVel = document.getElementById('vel');
         const elRpm = document.getElementById('rpm');
 
-        let tempoTotal = 600, tempoRestante = 600, cronometro = null, treinoAtivo = false;
+        let tempoTotal = 0, tempoRestante = 0, cronometro = null, treinoAtivo = false;
         let calorias = 0, distancia = 0;
         let zonaAtual = 'z1';
         let velAlvo = 18.0;
@@ -291,31 +286,21 @@
         let corZonaAtual = "#2196F3";
         let fatorAvancoPista = 0.3;
 
-        // Troca de zona acionada pelo treinador
-        function mudarZonaAutomatica(nomeZona) {
-            const btnTarget = Array.from(botoesZona).find(b => b.dataset.zona === nomeZona);
-            if (!btnTarget) return;
-
-            botoesZona.forEach(b => b.classList.remove('selecionado'));
-            btnTarget.classList.add('selecionado');
-            
-            zonaAtual = btnTarget.dataset.zona;
-            velAlvo = parseFloat(btnTarget.dataset.vel);
-            rpmAlvo = parseInt(btnTarget.dataset.rpm);
-            corZonaAtual = btnTarget.dataset.cor;
-            fatorAvancoPista = velAlvo / 60;
-
-            aplicarCorZona(corZonaAtual);
-
-            const falas = falasTreinador[zonaAtual];
-            const falaAleatoria = falas[Math.floor(Math.random() * falas.length)];
-            falarTreinador(falaAleatoria);
-        }
-
-        // Permite troca manual se o usuário quiser clicar
         botoesZona.forEach(btn => {
             btn.addEventListener('click', () => {
-                mudarZonaAutomatica(btn.dataset.zona);
+                botoesZona.forEach(b => b.classList.remove('selecionado'));
+                btn.classList.add('selecionado');
+                
+                zonaAtual = btn.dataset.zona;
+                velAlvo = parseFloat(btn.dataset.vel);
+                rpmAlvo = parseInt(btn.dataset.rpm);
+                corZonaAtual = btn.dataset.cor;
+                fatorAvancoPista = velAlvo / 60;
+
+                aplicarCorZona(corZonaAtual);
+                
+                const falaSugerida = falasTreinador[zonaAtual][0];
+                falarTreinador(falaSugerida);
             });
         });
 
@@ -327,7 +312,7 @@
             document.querySelectorAll('.dado span').forEach(el => el.style.color = hexCor);
             
             displayMat.color.set(hexCor);
-            faixaCentralMat.color.set(hexCor);
+            faixaCentralMat.color.set(hexCor); // Muda a cor da faixa na pista
         }
 
         botoesTempo.forEach(btn => {
@@ -337,7 +322,7 @@
                 tempoTotal = parseInt(btn.dataset.segundos);
                 tempoRestante = tempoTotal;
                 atualizaTela();
-                iniciarTreino();
+                btnIniciar.disabled = false;
             });
         });
 
@@ -356,12 +341,12 @@
             elVel.textContent = velAlvo.toFixed(1);
         }
 
-        function iniciarTreino() {
+        btnIniciar.addEventListener('click', () => {
             if(tempoRestante <= 0) return;
             treinoAtivo = true;
             if(cronometro) clearInterval(cronometro);
             
-            falarTreinador("Treino automático iniciado! Siga o ritmo indicado pelo Coach.");
+            falarTreinador(`Treino iniciado! Vamos juntos na ${zonaAtual.toUpperCase()}. Mantenha o ritmo!`);
 
             cronometro = setInterval(() => {
                 tempoRestante--;
@@ -372,34 +357,25 @@
                 elRpm.textContent = Math.round(rpmAlvo + Math.sin(tempoRestante / 2) * 4);
                 atualizaTela();
                 
-                // LÓGICA DE TROCA DE RITMO AUTOMÁTICA PELO TREINADOR
-                const pctConcluido = ((tempoTotal - tempoRestante) / tempoTotal) * 100;
-
-                if (pctConcluido >= 85 && zonaAtual !== 'z1' && tempoRestante > 10) {
-                    mudarZonaAutomatica('z1'); // Desaquecimento final
-                } else if (pctConcluido >= 60 && pctConcluido < 85 && zonaAtual !== 'z4') {
-                    mudarZonaAutomatica('z4'); // Sprint
-                } else if (pctConcluido >= 35 && pctConcluido < 60 && zonaAtual !== 'z3') {
-                    mudarZonaAutomatica('z3'); // Limiar
-                } else if (pctConcluido >= 15 && pctConcluido < 35 && zonaAtual !== 'z2') {
-                    mudarZonaAutomatica('z2'); // Moderado
+                // Treinador dá dicas periódicas a cada 45 segundos de treino
+                if (tempoRestante > 5 && tempoRestante % 45 === 0) {
+                    const frasesDaZona = falasTreinador[zonaAtual];
+                    const fraseAleatoria = frasesDaZona[Math.floor(Math.random() * frasesDaZona.length)];
+                    falarTreinador(fraseAleatoria);
                 }
 
                 if (tempoRestante <= 0) {
                     clearInterval(cronometro);
                     treinoAtivo = false;
                     falarTreinador("Parabéns! Treino concluído com sucesso! Excelente trabalho!");
-                    btnIniciar.disabled = false;
-                    btnParar.disabled = true;
+                    btnIniciar.disabled = btnParar.disabled = true;
                 }
             }, 1000);
             
             btnIniciar.disabled = true;
             btnParar.disabled = false;
             btnReiniciar.disabled = false;
-        }
-
-        btnIniciar.addEventListener('click', iniciarTreino);
+        });
 
         btnParar.addEventListener('click', () => {
             if (treinoAtivo) {
@@ -407,9 +383,8 @@
                 treinoAtivo = false;
                 btnParar.textContent = "Continuar";
                 falarTreinador("Treino pausado. Respire fundo!");
-                btnIniciar.disabled = false;
             } else {
-                iniciarTreino();
+                btnIniciar.click();
                 btnParar.textContent = "Pausar";
             }
         });
@@ -420,8 +395,10 @@
             calorias = 0; distancia = 0;
             treinoAtivo = false;
             atualizaTela();
-            mudarZonaAutomatica('z1');
-            iniciarTreino();
+            falarTreinador("Treino reiniciado. Escolha sua zona e comece quando estiver pronto!");
+            btnIniciar.disabled = false;
+            btnParar.disabled = true;
+            btnReiniciar.disabled = true;
             btnParar.textContent = "Pausar";
         });
 
@@ -479,12 +456,6 @@
         });
 
         animate();
-
-        // INICIALIZAÇÃO AUTOMÁTICA AO CARREGAR A PÁGINA
-        window.addEventListener('load', () => {
-            atualizaTela();
-            iniciarTreino();
-        });
     </script>
 </body>
 </html>
