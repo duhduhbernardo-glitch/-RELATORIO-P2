@@ -78,20 +78,20 @@
 <body>
 
     <div id="canvas-container">
-        <div class="tag-cenario" id="nomeCenario">🌧️ Cyber Chuva Neon — Pista Multifaixas</div>
+        <div class="tag-cenario" id="nomeCenario">🌧️ Cyber Chuva Neon — Troca Automática a cada 2min</div>
     </div>
 
     <!-- PAINEL DO TREINADOR -->
     <div class="hud-treinador" id="hudTreinador">
         <div class="treinador-avatar">🚴‍♂️</div>
         <div class="treinador-info">
-            <div class="treinador-nome">Coach Virtual (Comando Automatizado)</div>
-            <div class="treinador-fala" id="falaTreinador">Escolha a duração para iniciar o treino guiado por faixas!</div>
+            <div class="treinador-nome">Coach Virtual (Ajuste Automático: 2 min)</div>
+            <div class="treinador-fala" id="falaTreinador">Escolha o tempo total de treino para iniciar!</div>
         </div>
     </div>
 
     <div class="painel-controle" id="painelControle">
-        <div class="secao-label">Duração do Treino:</div>
+        <div class="secao-label">Duração Total:</div>
         <div class="opcoes-tempo">
             <button class="botao-tempo" data-segundos="300">5m</button>
             <button class="botao-tempo" data-segundos="600">10m</button>
@@ -121,7 +121,9 @@
     </div>
 
     <script>
-        /* DEFINIÇÃO DAS ZONAS / FAIXAS DA RUA */
+        /* ORDEM DAS ZONAS PARA TROCA AUTOMÁTICA */
+        const ordemZonas = ['z1', 'z2', 'z3', 'z4'];
+        
         const zonas = {
             z1: { nome: "Z1 Aquecimento", xPos: -3.0, vel: 18.0, rpm: 65, cor: "#2196F3", hex: 0x2196F3 },
             z2: { nome: "Z2 Moderado",    xPos: -1.0, vel: 25.0, rpm: 80, cor: "#4CAF50", hex: 0x4CAF50 },
@@ -131,24 +133,24 @@
 
         const falasTreinador = {
             z1: [
-                "Ajustando para a faixa Z1! Mantenha giros leves e respiração ritmada.",
-                "Z1 ativada na faixa esquerda. Excelente para recuperação.",
-                "Mantenha a cadência em 65 RPM nesta faixa."
+                "Atenção! Mudando para a faixa Z1. Giros leves e recuperação.",
+                "Z1 ativada! Respire fundo e mantenha 65 RPM.",
+                "Entrando na faixa azul: foco no ritmo e controle da respiração."
             ],
             z2: [
-                "Mudando para a faixa Z2! Ritmo de cruzeiro.",
-                "Faixa Z2: Perfeita para construir resistência e queimar gordura.",
-                "Mantenha cadência firme em torno de 80 RPM!"
+                "2 minutos concluídos! Mudando para a faixa Z2!",
+                "Entrando na faixa Z2. Ritmo de cruzeiro constante a 80 RPM.",
+                "Hora de acelerar um pouco na faixa verde!"
             ],
             z3: [
-                "Atenção, mudando para a faixa Z3 Limiar!",
-                "Sinta o ritmo acelerar! Foco total na respiração.",
-                "Mantenha 95 RPM na faixa laranja!"
+                "Mais 2 minutos! Mudando para a faixa Z3 Limiar!",
+                "Atenção, subindo o ritmo na faixa laranja! Mantenha 95 RPM!",
+                "Força constante na Z3! Mantenha o foco!"
             ],
             z4: [
-                "ATENÇÃO! Indo para a faixa Z4 SPRINT!",
-                "Força total nos pedais! Mantenha a velocidade máxima!",
-                "Superando limites na faixa vermelha! 115 RPM!"
+                "ATENÇÃO! Hora do SPRINT na faixa Z4!",
+                "Acelerando para a faixa vermelha! Força total nos pedais!",
+                "Sprint de 2 minutos! Mantenha 115 RPM até a próxima troca!"
             ]
         };
 
@@ -211,7 +213,6 @@
         const road = new THREE.Mesh(new THREE.PlaneGeometry(10, 200), roadMat);
         road.rotation.x = -Math.PI / 2; road.position.set(0, 0, -90); scene.add(road);
 
-        // Criando as 4 faixas na rua correspondentes às Zonas
         Object.keys(zonas).forEach(k => {
             const z = zonas[k];
             const faixaMat = new THREE.MeshBasicMaterial({ color: z.hex });
@@ -221,7 +222,6 @@
             scene.add(faixa);
         });
 
-        // Linhas divisórias das faixas
         const trackLines = [];
         const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
         const divisorX = [-2.0, 0.0, 2.0];
@@ -262,7 +262,7 @@
 
         let velocidadeChuvaY = -0.08;
 
-        /* ELEMENTOS HUD */
+        /* ELEMENTOS HUD E CONTROLE */
         const botoesTempo = document.querySelectorAll('.botao-tempo');
         const painelControle = document.getElementById('painelControle');
         const hudTreinador = document.getElementById('hudTreinador');
@@ -278,8 +278,10 @@
         const elVel = document.getElementById('vel');
         const elRpm = document.getElementById('rpm');
 
-        let tempoTotal = 0, tempoRestante = 0, cronometro = null, treinoAtivo = false;
+        let tempoTotal = 0, tempoRestante = 0, tempoDecorrido = 0;
+        let cronometro = null, treinoAtivo = false;
         let calorias = 0, distancia = 0;
+        let indiceZonaAtual = 0;
         let zonaChaveAtual = 'z1';
         let xAlvoCamera = zonas.z1.xPos;
 
@@ -289,6 +291,7 @@
                 btn.classList.add('selecionado');
                 tempoTotal = parseInt(btn.dataset.segundos);
                 tempoRestante = tempoTotal;
+                tempoDecorrido = 0;
                 atualizaTela();
                 btnIniciar.disabled = false;
             });
@@ -334,22 +337,19 @@
             treinoAtivo = true;
             if(cronometro) clearInterval(cronometro);
             
-            alterarZonaTreinador('z1');
+            alterarZonaTreinador(ordemZonas[indiceZonaAtual]);
 
             cronometro = setInterval(() => {
                 tempoRestante--;
-                const z = zonas[zonaChaveAtual];
+                tempoDecorrido++;
 
-                // Treinador altera as zonas dinamicamente com base no progresso do treino
-                const progresso = (tempoTotal - tempoRestante) / tempoTotal;
-                if (progresso >= 0.8 && zonaChaveAtual !== 'z4') {
-                    alterarZonaTreinador('z4');
-                } else if (progresso >= 0.5 && progresso < 0.8 && zonaChaveAtual !== 'z3') {
-                    alterarZonaTreinador('z3');
-                } else if (progresso >= 0.2 && progresso < 0.5 && zonaChaveAtual !== 'z2') {
-                    alterarZonaTreinador('z2');
+                // A cada 120 segundos (2 minutos), o treinador altera para a próxima faixa/zona
+                if (tempoDecorrido % 120 === 0 && tempoRestante > 0) {
+                    indiceZonaAtual = (indiceZonaAtual + 1) % ordemZonas.length;
+                    alterarZonaTreinador(ordemZonas[indiceZonaAtual]);
                 }
 
+                const z = zonas[zonaChaveAtual];
                 const multiplicadorCal = z.vel / 15;
                 calorias += (9 * multiplicadorCal) / 60;
                 distancia += z.vel / 3600;
@@ -385,6 +385,8 @@
         btnReiniciar.addEventListener('click', () => {
             clearInterval(cronometro);
             tempoRestante = tempoTotal;
+            tempoDecorrido = 0;
+            indiceZonaAtual = 0;
             calorias = 0; distancia = 0;
             treinoAtivo = false;
             alterarZonaTreinador('z1');
@@ -406,11 +408,11 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // Transição suave lateral para trocar de faixa da pista
+            // Transição lateral da câmera ao mudar de faixa
             camera.position.x += (xAlvoCamera - camera.position.x) * 0.05;
             povGroup.position.x = camera.position.x;
 
-            // Animação da chuva
+            // Animação das gotas de chuva
             const posAttr = rainGeo.attributes.position;
             for (let i = 0; i < QTD_GOTAS; i++) {
                 posAttr.array[i * 6 + 1] += velocidadeChuvaY;
