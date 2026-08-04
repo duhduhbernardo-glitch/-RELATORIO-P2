@@ -1,707 +1,381 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema Integrado de Produção & Qualidade</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <style>
-    :root {
-      --navy: #1B2A4A;
-      --blue: #2D4A77;
-      --bg: #F4F6F9;
-      --white: #FFFFFF;
-      --border: #D0D7DE;
-      --green: #28a745;
-      --red: #dc3545;
-      --yellow: #ffc107;
-      --orange: #d97706;
-      --purple: #6f42c1;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treino 3D — Cenários Aleatórios | Simulador POV</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Arial, sans-serif; }
+        :root { --verde:#4CAF50; --escuro:#0a0a0c; --cinza:rgba(22, 22, 26, 0.85); --texto:#e0e0e0; --destaque:#81C784; }
+        body, html { width:100%; height:100%; overflow:hidden; background:var(--escuro); color:var(--texto); }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: var(--bg); color: #333; padding: 20px; }
+        /* CANVAS 3D EM TELA CHEIA */
+        #canvas-container { width:100vw; height:100vh; position:absolute; top:0; left:0; z-index:1; }
 
-    header { background-color: var(--navy); color: var(--white); padding: 15px 20px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
-    header h1 { font-size: 1.5rem; margin-bottom: 4px; }
-    header p { font-size: 0.85rem; opacity: 0.9; }
+        .tag-cenario { 
+            position:absolute; top:20px; left:20px; 
+            background:rgba(0,0,0,0.7); padding:8px 15px; border-radius:20px; 
+            font-size:0.85rem; color:#81C784; border:1px solid var(--verde); 
+            pointer-events:none; z-index:2; backdrop-filter:blur(5px);
+        }
 
-    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
-    .tab-btn { padding: 10px 20px; font-size: 1rem; font-weight: bold; background: #e0e0e0; border: none; border-radius: 6px 6px 0 0; cursor: pointer; color: #555; }
-    .tab-btn.active { background: var(--blue); color: var(--white); }
+        /* PAINEL DE CONTROLE FIXADO NA PARTE INFERIOR */
+        .painel-controle { 
+            position:absolute; bottom:15px; left:50%; transform:translateX(-50%);
+            width:95%; max-width:1100px; background:var(--cinza); 
+            border-radius:18px; padding:15px 20px; border:2px solid var(--verde); 
+            box-shadow:0 0 25px rgba(76,175,80,0.3); z-index:2; 
+            backdrop-filter:blur(10px); display:flex; flex-direction:column; gap:10px;
+        }
 
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
+        .titulo-painel { font-size:1.1rem; color:var(--destaque); text-align:center; }
 
-    .grid-container { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
-    @media (max-width: 950px) { .grid-container { grid-template-columns: 1fr; } }
+        .opcoes-tempo { display:flex; justify-content:center; gap:6px; flex-wrap:wrap; }
+        .botao-tempo { padding:6px 12px; font-size:0.85rem; font-weight:bold; border:2px solid #333; border-radius:8px; background:rgba(0,0,0,0.6); color:var(--texto); cursor:pointer; transition:0.2s; text-align:center; }
+        .botao-tempo.selecionado { border-color:var(--verde); background:rgba(76,175,80,0.25); color:var(--verde); box-shadow:0 0 10px rgba(76,175,80,0.3); }
+        .botao-tempo:hover { border-color:var(--destaque); }
 
-    .card { background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid var(--border); margin-bottom: 20px; }
-    .card h2 { font-size: 1.1rem; color: var(--navy); margin-bottom: 15px; border-bottom: 2px solid var(--bg); padding-bottom: 8px; }
+        .dados-treino { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; }
+        @media(max-width:768px){ .dados-treino { grid-template-columns:repeat(2, 1fr); } }
 
-    .form-group { margin-bottom: 12px; }
-    .form-group label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 4px; color: #555; }
-    .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; }
-    .form-row { display: flex; gap: 10px; }
+        .dado { background:rgba(0,0,0,0.6); padding:8px; border-radius:8px; text-align:center; border-left:4px solid var(--verde); }
+        .dado span { font-size:1.2rem; font-weight:bold; color:var(--verde); display:block; font-family:monospace; }
+        .dado label { font-size:0.75rem; color:#aaa; }
 
-    button.btn-add { width: 100%; background: var(--blue); color: white; border: none; padding: 12px; font-size: 1rem; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.2s; margin-top: 10px; }
-    button.btn-add:hover { background: var(--navy); }
+        .contador { text-align:center; padding:8px; background:rgba(0,0,0,0.6); border-radius:8px; border:1px solid var(--verde); }
+        .tempo-restante { font-size:1.8rem; font-weight:bold; color:var(--verde); font-family: monospace; }
+        .barra-progresso { width:100%; height:6px; background:#333; border-radius:3px; overflow:hidden; margin-top:4px; }
+        .progresso { height:100%; background:linear-gradient(90deg, var(--verde), var(--destaque)); width:0%; transition:width 0.3s; }
+        .status { font-size:0.8rem; color:#aaa; margin-top:4px; }
 
-    .btn-action { padding: 12px 20px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; color: white; display: inline-flex; align-items: center; gap: 8px; font-size: 0.95rem; }
-    .btn-green { background: #28a745; }
-    .btn-green:hover { background: #218838; }
-    .btn-gray { background: #6c757d; }
-    .btn-gray:hover { background: #5a6268; }
-    .btn-danger { background: #dc3545; }
-    .btn-danger:hover { background: #bd2130; }
-
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 15px; }
-    .stat-box { background: var(--bg); padding: 10px; border-radius: 6px; text-align: center; border: 1px solid var(--border); }
-    .stat-box span { display: block; font-size: 0.75rem; color: #666; font-weight: bold; }
-    .stat-box strong { font-size: 1.2rem; color: var(--navy); }
-
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.88rem; }
-    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
-    th { background: var(--blue); color: white; font-weight: 600; }
-    tr:nth-child(even) { background-color: #fafafa; }
-
-    .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; text-align: center; display: inline-block; }
-    .badge-extra { background: #e6f4ea; color: #137333; }
-    .badge-caco { background: #fce8e6; color: #c5221f; }
-    .badge-comercial { background: #feefc3; color: #b06000; }
-    .badge-linha { background: #e8f0fe; color: #1a73e8; border: 1px solid #aecbfa; }
-
-    .defect-chip { display: inline-block; background: #eef2f7; border: 1px solid #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 0.78rem; margin: 2px; font-weight: 600; color: #334155; }
-
-    .status-banner { padding: 12px 15px; border-radius: 6px; font-weight: bold; text-align: center; margin-bottom: 15px; }
-    .status-pendente { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-    .status-aprovado { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-
-    .header-controls { display: flex; gap: 15px; justify-content: center; align-items: center; margin-top: 10px; flex-wrap: wrap; }
-    .header-controls label { font-size: 0.9rem; font-weight: bold; }
-    .header-controls select, .header-controls input { padding: 5px 10px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; color: #1B2A4A; }
-
-    .table-filter-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
-
-    @media print {
-      body { padding: 0; background: white; }
-      .nav-tabs, .btn-add, .btn-action, #palletForm, #defectForm, .no-print, .table-filter-bar { display: none !important; }
-      .grid-container { display: block; }
-      .card { border: none; box-shadow: none; padding: 0; margin-bottom: 30px; }
-      .tab-content { display: block !important; }
-    }
-  </style>
+        .botoes-acao { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+        .btn { padding:8px 16px; font-size:0.85rem; font-weight:bold; border:none; border-radius:8px; cursor:pointer; transition:0.2s; }
+        .btn.iniciar { background:var(--verde); color:white; }
+        .btn.parar { background:#f44336; color:white; }
+        .btn.reiniciar { background:#ff9800; color:white; }
+        .btn.tela-cheia { background:#2196F3; color:white; }
+        .btn:disabled { opacity:0.3; cursor:not-allowed; }
+    </style>
 </head>
 <body>
 
-  <header>
-    <h1>SISTEMA INTEGRADO DE PRODUÇÃO & QUALIDADE</h1>
-    <div class="header-controls">
-      <span>Unidade: 2</span>
-      <span>|</span>
-      <label>Turno:
-        <select id="selectTurno">
-          <option value="A">Turno A</option>
-          <option value="B">Turno B</option>
-          <option value="C" selected>Turno C</option>
-          <option value="D">Turno D</option>
-        </select>
-      </label>
-      <span>|</span>
-      <label>Responsável:
-        <input type="text" id="inputOperador" value="    " style="width: 120px;">
-      </label>
+    <!-- CANVAS 3D EM TELA CHEIA -->
+    <div id="canvas-container">
+        <div class="tag-cenario" id="nomeCenario">🌲 Cenário: Noturno Clássico</div>
     </div>
-  </header>
 
-  <div class="nav-tabs">
-    <button class="tab-btn active" onclick="switchTab('tab-pallets', this)">📦 Apontamento por Pallet</button>
-    <button class="tab-btn" onclick="switchTab('tab-defeitos', this)">🔍 Controle Estatístico de Defeitos</button>
-    <button class="tab-btn" onclick="switchTab('tab-entrega', this)">📋 Finalização & Entrega (Qualidade)</button>
-  </div>
-
-  <div id="tab-pallets" class="tab-content active">
-    <div class="grid-container">
-      <div class="card">
-        <h2>Registrar Pallet</h2>
-        <form id="palletForm">
-          <div class="form-group">
-            <label style="color: var(--navy); font-size: 0.9rem;">🏭 Linha de Produção:</label>
-            <select id="linhaProducao" style="border: 2px solid var(--navy); font-weight: bold; background: #e8f0fe;">
-              <option value="Linha 1">Linha 1</option>
-              <option value="Linha 2">Linha 2</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Nº Inicial da Etiqueta:</label>
-            <input type="text" id="etiqueta" placeholder="Ex: 0220476674" required autofocus>
-          </div>
-
-          <div class="form-group">
-            <label style="color: var(--blue);">🔢 Gerar em Sequência (Qtd Pallets):</label>
-            <select id="qtdSequencia" style="border: 2px solid var(--blue); font-weight: bold;">
-              <option value="1">1 Pallet (Apenas esta etiqueta)</option>
-              <option value="2">2 Pallets em Sequência</option>
-              <option value="3">3 Pallets em Sequência</option>
-              <option value="4">4 Pallets em Sequência</option>
-              <option value="5" selected>5 Pallets em Sequência</option>
-              <option value="6">6 Pallets em Sequência</option>
-              <option value="7">7 Pallets em Sequência</option>
-              <option value="8">8 Pallets em Sequência</option>
-              <option value="9">9 Pallets em Sequência</option>
-              <option value="10">10 Pallets em Sequência</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Referência / Produto:</label>
-            <input type="text" id="referencia" value="Marfim" required>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group" style="flex: 1;">
-              <label>BIT:</label>
-              <input type="number" id="bitola" value="0" required>
-            </div>
-            <div class="form-group" style="flex: 1;">
-              <label>TON:</label>
-              <input type="number" id="tonalidade" value="53" required>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Quantidade por Pallet (M²/UN):</label>
-            <input type="number" id="quantidade" value="512" required>
-          </div>
-
-          <div class="form-group">
-            <label>Classificação:</label>
-            <select id="classificacao">
-              <option value="EXTRA">EXTRA</option>
-              <option value="COMERCIAL">COMERCIAL</option>
-              <option value="CACO">CACO</option>
-              <option value="GERAL">GERAL</option>
-            </select>
-          </div>
-
-          <button type="submit" class="btn-add">+ Salvar Pallet(s)</button>
-        </form>
-      </div>
-
-      <div class="card">
-        <div class="stats">
-          <div class="stat-box"><span>TOTAL PALLETS</span><strong id="kpiPallets">0</strong></div>
-          <div class="stat-box"><span>VOLUME TOTAL (M²)</span><strong id="kpiVolume">0</strong></div>
-          <div class="stat-box"><span>LINHA 1 (M²)</span><strong id="kpiLinha1" style="color: var(--blue);">0</strong></div>
-          <div class="stat-box"><span>LINHA 2 (M²)</span><strong id="kpiLinha2" style="color: var(--purple);">0</strong></div>
-          <div class="stat-box"><span>% EXTRA</span><strong id="kpiExtra" style="color: var(--green);">0%</strong></div>
-          <div class="stat-box"><span>% COMERCIAL</span><strong id="kpiComercial" style="color: var(--orange);">0%</strong></div>
+    <!-- PAINEL FIXO NA PARTE INFERIOR -->
+    <div class="painel-controle">
+        <h3 class="titulo-painel">⏱️ Selecione a Duração do Treino</h3>
+        <div class="opcoes-tempo">
+            <button class="botao-tempo" data-segundos="300">5 min</button>
+            <button class="botao-tempo" data-segundos="600">10 min</button>
+            <button class="botao-tempo" data-segundos="900">15 min</button>
+            <button class="botao-tempo" data-segundos="1200">20 min</button>
+            <button class="botao-tempo" data-segundos="1500">25 min</button>
+            <button class="botao-tempo" data-segundos="1800">30 min</button>
+            <button class="botao-tempo" data-segundos="2700">45 min</button>
+            <button class="botao-tempo" data-segundos="3600">60 min</button>
         </div>
 
-        <div class="table-filter-bar">
-          <h2>Pallets Processados no Turno</h2>
-          <div>
-            <label style="font-size: 0.85rem; font-weight: bold;">Filtrar Tabela: </label>
-            <select id="filtroLinhaTabela" onchange="atualizarTabelaPallets()" style="padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); font-weight: bold;">
-              <option value="TODAS">Todas as Linhas</option>
-              <option value="Linha 1">Linha 1</option>
-              <option value="Linha 2">Linha 2</option>
-            </select>
-          </div>
+        <div class="dados-treino">
+            <div class="dado"><span id="cal">0</span><label>Calorias (Kcal)</label></div>
+            <div class="dado"><span id="km">0.00</span><label>Distância (km)</label></div>
+            <div class="dado"><span id="vel">22.5</span><label>Velocidade (km/h)</label></div>
+            <div class="dado"><span id="rpm">75</span><label>Cadência (RPM)</label></div>
         </div>
 
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Seq</th>
-                <th>Linha</th>
-                <th>Etiqueta</th>
-                <th>Ref / Produto</th>
-                <th>BIT/TON</th>
-                <th>Qtd (M²)</th>
-                <th>Classificação</th>
-                <th>Hora</th>
-              </tr>
-            </thead>
-            <tbody id="tabelaPallets"></tbody>
-          </table>
+        <div class="contador">
+            <div class="tempo-restante" id="tempo">00:00:00</div>
+            <div class="barra-progresso"><div class="progresso" id="barra"></div></div>
+            <div class="status" id="status">Escolha o tempo para sortear o cenário 3D</div>
         </div>
-      </div>
+
+        <div class="botoes-acao">
+            <button class="btn iniciar" id="btnIniciar" disabled>Iniciar</button>
+            <button class="btn parar" id="btnParar" disabled>Pausar</button>
+            <button class="btn reiniciar" id="btnReiniciar" disabled>Reiniciar</button>
+            <button class="btn tela-cheia" id="btnTela">Tela Cheia</button>
+        </div>
     </div>
-  </div>
 
-  <div id="tab-defeitos" class="tab-content">
-    <div class="grid-container">
-      <div class="card">
-        <h2>Inspeção Horária do Produto</h2>
-        <form id="defectForm">
-          <div class="form-row">
-            <div class="form-group" style="flex: 1;">
-              <label>Linha:</label>
-              <select id="defLinha">
-                <option value="Linha 1">Linha 1</option>
-                <option value="Linha 2">Linha 2</option>
-              </select>
-            </div>
-            <div class="form-group" style="flex: 1;">
-              <label>Horário:</label>
-              <select id="defHora">
-                <option value="00:00">00:00</option>
-                <option value="01:00">01:00</option>
-                <option value="02:00">02:00</option>
-                <option value="03:00">03:00</option>
-                <option value="04:00">04:00</option>
-                <option value="05:00">05:00</option>
-                <option value="06:00">06:00</option>
-                <option value="07:00">07:00</option>
-                <option value="08:00">08:00</option>
-                <option value="09:00">09:00</option>
-                <option value="10:00">10:00</option>
-                <option value="11:00">11:00</option>
-                <option value="12:00">12:00</option>
-                <option value="13:00">13:00</option>
-                <option value="14:00">14:00</option>
-                <option value="15:00">15:00</option>
-                <option value="16:00">16:00</option>
-                <option value="17:00">17:00</option>
-                <option value="18:00">18:00</option>
-                <option value="19:00">19:00</option>
-                <option value="20:00">20:00</option>
-                <option value="21:00">21:00</option>
-                <option value="22:00">22:00</option>
-                <option value="23:00">23:00</option>
-              </select>
-            </div>
-          </div>
+    <script>
+        const container = document.getElementById('canvas-container');
+        
+        /* CENA & CÂMERA POV 3D */
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 1.25, 0);
 
-          <div class="form-row">
-            <div class="form-group" style="flex: 1;">
-              <label>Formato:</label>
-              <input type="text" id="defFormato" value="257x423">
-            </div>
-            <div class="form-group" style="flex: 1;">
-              <label>Referência:</label>
-              <input type="text" id="defRef" value="Ceramica">
-            </div>
-          </div>
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
 
-          <div class="form-row">
-            <div class="form-group" style="flex: 1;">
-              <label>Peças Boas:</label>
-              <input type="number" id="pecasBoas" value="0" min="0" required>
-            </div>
-            <div class="form-group" style="flex: 1;">
-              <label>Peças c/ Defeito:</label>
-              <input type="number" id="pecasDefeito" value="0" min="0" required>
-            </div>
-          </div>
+        /* ILUMINAÇÃO GERAL E FAROL DO GUIDÃO */
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
 
-          <div style="border-top: 1px solid var(--border); margin: 10px 0; padding-top: 10px;">
-            <label style="font-size: 0.85rem; font-weight: bold; color: var(--navy);">Tipo do Defeito Encontrado:</label>
-            <div class="form-group" style="margin-top: 6px;">
-              <select id="selectDefeito">
-                <option value="Bolha de Vela">Bolha de Vela</option>
-                <option value="Borrado">Borrado</option>
-                <option value="Canto Lascado">Canto Lascado</option>
-                <option value="Canto Quebrado">Canto Quebrado</option>
-                <option value="Cascão">Cascão</option>
-                <option value="Defeito de Desenho">Defeito de Desenho</option>
-                <option value="Deslocado">Deslocado</option>
-                <option value="Empeno">Empeno</option>
-                <option value="Estria">Estria</option>
-                <option value="Ferradura">Ferradura</option>
-                <option value="Fervido">Fervido</option>
-                <option value="Fora de Encaixe">Fora de Encaixe</option>
-                <option value="Fora de Esquadro">Fora de Esquadro</option>
-                <option value="Furos">Furos</option>
-                <option value="Grumo">Grumo</option>
-                <option value="Marca Espátula">Marca Espátula</option>
-                <option value="Outros">Outros</option>
-                <option value="Peças Com Ar">Peças Com Ar</option>
-                <option value="Pingo D'Água">Pingo D'Água</option>
-                <option value="Pingo de Esmalte">Pingo de Esmalte</option>
-                <option value="Pinta Preta">Pinta Preta</option>
-                <option value="Retração">Retração</option>
-                <option value="Risco de Vela">Risco de Vela</option>
-                <option value="Serrilhado">Serrilhado</option>
-                <option value="Sujeira Superficial">Sujeira Superficial</option>
-                <option value="Trinca" selected>Trinca</option>
-                <option value="Verruga">Verruga</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Qtd de Peças com este Defeito:</label>
-              <input type="number" id="qtdDefeito" value="0" min="0">
-            </div>
-          </div>
+        const headlight = new THREE.SpotLight(0xffffff, 3, 45, Math.PI / 4, 0.5);
+        headlight.position.set(0, 1.0, -0.2);
+        headlight.target.position.set(0, 0, -20);
+        scene.add(headlight);
+        scene.add(headlight.target);
 
-          <button type="submit" class="btn-add">+ Registrar Inspeção</button>
-        </form>
-      </div>
+        /* GUIDÃO DO CICLISTA (FIXO EM POV) */
+        const povGroup = new THREE.Group();
+        scene.add(povGroup);
 
-      <div class="card">
-        <div class="stats">
-          <div class="stat-box"><span>PEÇAS TESTADAS</span><strong id="kpiPecasTotal">0</strong></div>
-          <div class="stat-box"><span>PEÇAS BOAS</span><strong id="kpiPecasBoas" style="color: var(--green);">0</strong></div>
-          <div class="stat-box"><span>PEÇAS C/ DEFEITO</span><strong id="kpiPecasDefeito" style="color: var(--red);">0</strong></div>
-          <div class="stat-box"><span>% MÉDIA DEFEITOS</span><strong id="kpiPctDefeito">0%</strong></div>
-        </div>
-        <h2>Histórico de Defeitos por Horário</h2>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Hora</th>
-                <th>Linha</th>
-                <th>Referência</th>
-                <th>Boas</th>
-                <th>Defeito</th>
-                <th>Total</th>
-                <th>% Defeito</th>
-                <th>Defeitos Detalhados</th>
-              </tr>
-            </thead>
-            <tbody id="tabelaDefeitos"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
+        const matHandle = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
+        const matGrip = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 });
 
-  <div id="tab-entrega" class="tab-content">
-    <div class="card">
-      <div id="bannerStatus" class="status-banner status-pendente">
-        ⏳ STATUS DO RELATÓRIO: AGUARDANDO REVISÃO DA QUALIDADE
-      </div>
+        const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.3), matHandle);
+        stem.rotation.x = Math.PI / 3;
+        stem.position.set(0, 0.85, -0.4);
+        povGroup.add(stem);
 
-      <h2>Resumo de Encerramento do Turno</h2>
-      <div class="stats">
-        <div class="stat-box"><span>TOTAL PALLETS</span><strong id="sumPallets">0</strong></div>
-        <div class="stat-box"><span>VOLUME TOTAL</span><strong id="sumVolume">0 M²</strong></div>
-        <div class="stat-box"><span>VOL. LINHA 1</span><strong id="sumLinha1" style="color: var(--blue);">0 M²</strong></div>
-        <div class="stat-box"><span>VOL. LINHA 2</span><strong id="sumLinha2" style="color: var(--purple);">0 M²</strong></div>
-        <div class="stat-box"><span>% EXTRA</span><strong id="sumPctExtra" style="color: var(--green);">0%</strong></div>
-        <div class="stat-box"><span>% COMERCIAL</span><strong id="sumPctComercial" style="color: var(--orange);">0%</strong></div>
-      </div>
+        const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.7), matHandle);
+        bar.rotation.z = Math.PI / 2;
+        bar.position.set(0, 0.95, -0.5);
+        povGroup.add(bar);
 
-      <div class="no-print" style="margin: 20px 0; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-        <button class="btn-action btn-gray" onclick="baixarPDFApenas()">
-          📄 Baixar PDF
-        </button>
-        <button class="btn-action btn-green" onclick="abrirWhatsAppSimples()">
-          📲 Abrir WhatsApp Web / App
-        </button>
-        <button class="btn-action btn-danger" onclick="confirmarZerarTurno()">
-          🔄 Zerar Dados para Próximo Turno
-        </button>
-      </div>
+        const gripL = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.15), matGrip);
+        gripL.rotation.z = Math.PI / 2;
+        gripL.position.set(0.3, 0.95, -0.5);
+        povGroup.add(gripL);
 
-      <div style="border-top: 2px solid var(--border); padding-top: 20px; margin-top: 20px;">
-        <h2>Aprovação Digital do Gestor da Qualidade</h2>
-        <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
-          O gestor pode assinar na caixa abaixo usando o mouse ou a tela do tablet para aprovar o turno.
-        </p>
+        const gripR = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.15), matGrip);
+        gripR.rotation.z = Math.PI / 2;
+        gripR.position.set(-0.3, 0.95, -0.5);
+        povGroup.add(gripR);
 
-        <div style="max-width: 400px; margin: 0 auto; text-align: center;">
-          <canvas id="canvasAssinatura" width="380" height="120" style="border: 2px dashed var(--border); background: #fafafa; border-radius: 6px; cursor: crosshair;"></canvas>
-          <div style="margin-top: 8px; display: flex; gap: 10px; justify-content: center;">
-            <button onclick="limparAssinatura()" style="padding: 5px 10px; font-size: 0.8rem; border: 1px solid var(--border); background: white; border-radius: 4px; cursor: pointer;">Limpar Assinatura</button>
-            <button onclick="aprovarRelatorio()" style="padding: 5px 15px; font-size: 0.85rem; font-weight: bold; background: var(--green); color: white; border: none; border-radius: 4px; cursor: pointer;">Aprovar Relatório</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+        // Ciclocomputador Digital no Guidão
+        const screenGeo = new THREE.BoxGeometry(0.12, 0.08, 0.02);
+        const screenMat = new THREE.MeshBasicMaterial({ color: 0x4CAF50 });
+        const display = new THREE.Mesh(screenGeo, screenMat);
+        display.position.set(0, 1.0, -0.48);
+        display.rotation.x = -Math.PI / 6;
+        povGroup.add(display);
 
-  <script>
-    let pallets = [];
-    let inspecoesDefeitos = [];
+        /* PISTA E ESTRUTURAS DO CENÁRIO */
+        const roadGeo = new THREE.PlaneGeometry(12, 200);
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x15151c, roughness: 0.8 });
+        const road = new THREE.Mesh(roadGeo, roadMat);
+        road.rotation.x = -Math.PI / 2;
+        road.position.set(0, 0, -90);
+        scene.add(road);
 
-    function switchTab(tabId, btn) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById(tabId).classList.add('active');
-      
-      if (tabId === 'tab-entrega') atualizarResumoFinal();
-    }
+        const trackLines = [];
+        const lineGeo = new THREE.BoxGeometry(0.15, 0.01, 2);
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
-    // --- LÓGICA DE PALLETS ---
-    document.getElementById('palletForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      const linha = document.getElementById('linhaProducao').value;
-      let etiquetaInicial = document.getElementById('etiqueta').value.trim();
-      const qtdSeq = parseInt(document.getElementById('qtdSequencia').value);
-      const referencia = document.getElementById('referencia').value;
-      const bitola = document.getElementById('bitola').value;
-      const tonalidade = document.getElementById('tonalidade').value;
-      const quantidade = parseFloat(document.getElementById('quantidade').value);
-      const classificacao = document.getElementById('classificacao').value;
-      const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      let tamanhoOriginal = etiquetaInicial.length;
-      let numeroAtual = BigInt(etiquetaInicial.replace(/\D/g, '') || 0);
-
-      for (let i = 0; i < qtdSeq; i++) {
-        let proximaEtiquetaStr = (numeroAtual + BigInt(i)).toString();
-        while (proximaEtiquetaStr.length < tamanhoOriginal) {
-          proximaEtiquetaStr = '0' + proximaEtiquetaStr;
+        for (let i = 0; i < 20; i++) {
+            const line = new THREE.Mesh(lineGeo, lineMat);
+            line.position.set(0, 0.01, -i * 10);
+            scene.add(line);
+            trackLines.push(line);
         }
 
-        pallets.push({
-          linha,
-          etiqueta: proximaEtiquetaStr,
-          referencia,
-          bitola,
-          tonalidade,
-          quantidade,
-          classificacao,
-          hora
+        const polesGroup = new THREE.Group();
+        scene.add(polesGroup);
+
+        const poleGeo = new THREE.CylinderGeometry(0.05, 0.05, 4);
+        const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        const lampGeo = new THREE.SphereGeometry(0.25, 16, 16);
+        let lampMat = new THREE.MeshBasicMaterial({ color: 0x81C784 });
+
+        const poles = [];
+        for (let i = 0; i < 10; i++) {
+            const poleL = new THREE.Mesh(poleGeo, poleMat);
+            poleL.position.set(-4.5, 2, -i * 20);
+            const lampL = new THREE.Mesh(lampGeo, lampMat);
+            lampL.position.set(-4.5, 4, -i * 20);
+
+            const poleR = new THREE.Mesh(poleGeo, poleMat);
+            poleR.position.set(4.5, 2, -i * 20);
+            const lampR = new THREE.Mesh(lampGeo, lampMat);
+            lampR.position.set(4.5, 4, -i * 20);
+
+            polesGroup.add(poleL); polesGroup.add(lampL);
+            polesGroup.add(poleR); polesGroup.add(lampR);
+            poles.push(poleL, lampL, poleR, lampR);
+        }
+
+        /* BANCO DE CENÁRIOS ALEATÓRIOS */
+        const temasCenarios = [
+            { nome: "🌃 Circuito Cyber Neon", bg: 0x060411, road: 0x090814, line: 0x00ffff, light: 0xff00ff, fog: 0.02 },
+            { nome: "🌅 Pôr do Sol na Rodovia", bg: 0x2b1108, road: 0x1c1716, line: 0xffaa00, light: 0xff4500, fog: 0.015 },
+            { nome: "🌲 Estradas da Floresta", bg: 0x03120e, road: 0x0f1715, line: 0x4CAF50, light: 0x81C784, fog: 0.025 },
+            { nome: "🌌 Pista Galáctica Noturna", bg: 0x0a0a16, road: 0x141424, line: 0x3f51b5, light: 0x00bcd4, fog: 0.018 },
+            { nome: "🏙️ Túnel Urbano Noturno", bg: 0x111111, road: 0x222222, line: 0xffeb3b, light: 0xffffff, fog: 0.012 }
+        ];
+
+        function gerarCenarioAleatorio() {
+            const tema = temasCenarios[Math.floor(Math.random() * temasCenarios.length)];
+            scene.background = new THREE.Color(tema.bg);
+            scene.fog = new THREE.FogExp2(tema.bg, tema.fog);
+            roadMat.color.setHex(tema.road);
+            lineMat.color.setHex(tema.line);
+            headlight.color.setHex(tema.light);
+            lampMat.color.setHex(tema.light);
+            display.material.color.setHex(tema.line);
+            document.getElementById('nomeCenario').textContent = `🎮 Cenário: ${tema.nome}`;
+        }
+
+        gerarCenarioAleatorio(); // Cenário Inicial
+
+        /* LÓGICA DO CONTROLE DO TREINO */
+        const botoesTempo = document.querySelectorAll('.botao-tempo');
+        const tempoEl = document.getElementById('tempo');
+        const statusEl = document.getElementById('status');
+        const btnIniciar = document.getElementById('btnIniciar');
+        const btnParar = document.getElementById('btnParar');
+        const btnReiniciar = document.getElementById('btnReiniciar');
+        const btnTela = document.getElementById('btnTela');
+        const barra = document.getElementById('barra');
+        const elCal = document.getElementById('cal');
+        const elKm = document.getElementById('km');
+        const elRpm = document.getElementById('rpm');
+
+        let tempoTotal = 0, tempoRestante = 0, cronometro = null, treinoAtivo = false;
+        let calorias = 0, distancia = 0, vel = 22.5;
+        const calPorSegundo = 9 / 60;
+
+        botoesTempo.forEach(btn => {
+            btn.addEventListener('click', () => {
+                botoesTempo.forEach(b => b.classList.remove('selecionado'));
+                btn.classList.add('selecionado');
+                tempoTotal = parseInt(btn.dataset.segundos);
+                tempoRestante = tempoTotal;
+                
+                gerarCenarioAleatorio(); // Sorteia um novo cenário a cada tempo escolhido
+                atualizaTela();
+                btnIniciar.disabled = false;
+                statusEl.textContent = `Tempo configurado: ${btn.textContent} | Cenário gerado!`;
+            });
         });
-      }
 
-      let proximaSequencia = (numeroAtual + BigInt(qtdSeq)).toString();
-      while (proximaSequencia.length < tamanhoOriginal) {
-        proximaSequencia = '0' + proximaSequencia;
-      }
+        function formatarTempo(s) {
+            const h = Math.floor(s / 3600).toString().padStart(2, '0');
+            const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+            const seg = (s % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${seg}`;
+        }
 
-      atualizarTabelaPallets();
-      atualizarKPIsPallets();
+        function atualizaTela() {
+            tempoEl.textContent = formatarTempo(tempoRestante);
+            const pct = tempoTotal > 0 ? ((tempoTotal - tempoRestante) / tempoTotal) * 100 : 0;
+            barra.style.width = `${pct}%`;
+            elCal.textContent = Math.round(calorias);
+            elKm.textContent = distancia.toFixed(2);
+        }
 
-      document.getElementById('etiqueta').value = proximaSequencia;
-      document.getElementById('etiqueta').focus();
-    });
+        btnIniciar.addEventListener('click', () => {
+            if(tempoRestante <= 0) return;
+            treinoAtivo = true;
+            iniciarLoop();
+            btnIniciar.disabled = true;
+            btnParar.disabled = false;
+            btnReiniciar.disabled = false;
+            statusEl.textContent = "🔥 Pedala! Treino 3D em andamento...";
+        });
 
-    function atualizarTabelaPallets() {
-      const tbody = document.getElementById('tabelaPallets');
-      const filtro = document.getElementById('filtroLinhaTabela').value;
-      tbody.innerHTML = '';
+        function iniciarLoop() {
+            if(cronometro) clearInterval(cronometro);
+            cronometro = setInterval(() => {
+                tempoRestante--;
+                calorias += calPorSegundo;
+                distancia += vel / 3600;
 
-      const listaFiltrada = filtro === 'TODAS' ? pallets : pallets.filter(p => p.linha === filtro);
+                // Dinâmica leve no ritmo de pedalada
+                const flutuacao = Math.sin(tempoRestante / 3) * 5;
+                elRpm.textContent = Math.round(75 + flutuacao);
 
-      listaFiltrada.forEach((p, index) => {
-        let badgeClass = 'badge-extra';
-        if (p.classificacao === 'CACO') badgeClass = 'badge-caco';
-        if (p.classificacao === 'COMERCIAL') badgeClass = 'badge-comercial';
+                atualizaTela();
 
-        tbody.innerHTML += `
-          <tr>
-            <td>${index + 1}</td>
-            <td><span class="badge badge-linha">${p.linha || 'Linha 1'}</span></td>
-            <td><strong>${p.etiqueta}</strong></td>
-            <td>${p.referencia}</td>
-            <td>${p.bitola} / ${p.tonalidade}</td>
-            <td>${p.quantidade.toLocaleString('pt-BR')}</td>
-            <td><span class="badge ${badgeClass}">${p.classificacao}</span></td>
-            <td>${p.hora}</td>
-          </tr>
-        `;
-      });
-    }
+                if (tempoRestante <= 0) {
+                    clearInterval(cronometro);
+                    treinoAtivo = false;
+                    statusEl.textContent = "🏆 Excelente! Treino concluído!";
+                    btnIniciar.disabled = btnParar.disabled = true;
+                }
+            }, 1000);
+        }
 
-    function atualizarKPIsPallets() {
-      const totalPallets = pallets.length;
-      const totalVolume = pallets.reduce((acc, p) => acc + p.quantidade, 0);
-      const volumeLinha1 = pallets.filter(p => p.linha === 'Linha 1').reduce((acc, p) => acc + p.quantidade, 0);
-      const volumeLinha2 = pallets.filter(p => p.linha === 'Linha 2').reduce((acc, p) => acc + p.quantidade, 0);
-      const totalExtra = pallets.filter(p => p.classificacao === 'EXTRA').length;
-      const totalComercial = pallets.filter(p => p.classificacao === 'COMERCIAL').length;
+        btnParar.addEventListener('click', () => {
+            if (treinoAtivo) {
+                clearInterval(cronometro);
+                treinoAtivo = false;
+                btnParar.textContent = "Continuar";
+                statusEl.textContent = "⏸️ Treino Pausado";
+            } else {
+                treinoAtivo = true;
+                iniciarLoop();
+                btnParar.textContent = "Pausar";
+                statusEl.textContent = "🔥 Treino Retomado!";
+            }
+        });
 
-      document.getElementById('kpiPallets').innerText = totalPallets;
-      document.getElementById('kpiVolume').innerText = totalVolume.toLocaleString('pt-BR');
-      document.getElementById('kpiLinha1').innerText = volumeLinha1.toLocaleString('pt-BR');
-      document.getElementById('kpiLinha2').innerText = volumeLinha2.toLocaleString('pt-BR');
-      document.getElementById('kpiExtra').innerText = totalPallets > 0 ? ((totalExtra / totalPallets) * 100).toFixed(1) + '%' : '0%';
-      document.getElementById('kpiComercial').innerText = totalPallets > 0 ? ((totalComercial / totalPallets) * 100).toFixed(1) + '%' : '0%';
-    }
+        btnReiniciar.addEventListener('click', () => {
+            clearInterval(cronometro);
+            tempoRestante = tempoTotal;
+            calorias = 0;
+            distancia = 0;
+            treinoAtivo = false;
+            gerarCenarioAleatorio(); // Troca o cenário ao reiniciar
+            atualizaTela();
+            btnIniciar.disabled = false;
+            btnParar.disabled = true;
+            btnReiniciar.disabled = true;
+            btnParar.textContent = "Pausar";
+            statusEl.textContent = "Sessão e cenário reiniciados.";
+        });
 
-    // --- LÓGICA DE DEFEITOS ---
-    document.getElementById('defectForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const linha = document.getElementById('defLinha').value;
-      const hora = document.getElementById('defHora').value;
-      const ref = document.getElementById('defRef').value;
-      const boas = parseInt(document.getElementById('pecasBoas').value) || 0;
-      const defeito = parseInt(document.getElementById('pecasDefeito').value) || 0;
-      const tipoDefeito = document.getElementById('selectDefeito').value;
-      const qtdDefeito = parseInt(document.getElementById('qtdDefeito').value) || 0;
+        btnTela.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
 
-      inspecoesDefeitos.push({
-        linha, hora, ref, boas, defeito,
-        detalheDefeitos: [{ tipo: tipoDefeito, qtd: qtdDefeito }]
-      });
+        /* RENDER E ANIMAÇÃO DO MOVIMENTO 3D */
+        let step = 0;
+        function animate() {
+            requestAnimationFrame(animate);
 
-      atualizarTabelaDefeitos();
-      atualizarKPIsDefeitos();
-    });
+            if (treinoAtivo) {
+                step += 0.05;
 
-    function atualizarTabelaDefeitos() {
-      const tbody = document.getElementById('tabelaDefeitos');
-      tbody.innerHTML = '';
-      inspecoesDefeitos.forEach((d) => {
-        const total = d.boas + d.defeito;
-        const pct = total > 0 ? ((d.defeito / total) * 100).toFixed(1) : '0.0';
-        let chips = d.detalheDefeitos.map(item => `<span class="defect-chip">${item.tipo}: ${item.qtd}</span>`).join(' ');
+                // Velocidade de deslocamento dos elementos do cenário
+                const speed = 0.4;
 
-        tbody.innerHTML += `
-          <tr>
-            <td><strong>${d.hora}</strong></td>
-            <td><span class="badge badge-linha">${d.linha || 'Linha 1'}</span></td>
-            <td>${d.ref}</td>
-            <td>${d.boas}</td>
-            <td style="color: var(--red); font-weight: bold;">${d.defeito}</td>
-            <td>${total}</td>
-            <td><strong>${pct}%</strong></td>
-            <td>${chips || '<em>Sem defeitos</em>'}</td>
-          </tr>
-        `;
-      });
-    }
+                trackLines.forEach(line => {
+                    line.position.z += speed;
+                    if (line.position.z > 5) line.position.z = -195;
+                });
 
-    function atualizarKPIsDefeitos() {
-      const totalBoas = inspecoesDefeitos.reduce((acc, d) => acc + d.boas, 0);
-      const totalDefeito = inspecoesDefeitos.reduce((acc, d) => acc + d.defeito, 0);
-      const totalPecas = totalBoas + totalDefeito;
-      const pctMedia = totalPecas > 0 ? ((totalDefeito / totalPecas) * 100).toFixed(1) : '0.0';
+                for (let i = 0; i < poles.length; i++) {
+                    poles[i].position.z += speed;
+                    if (poles[i].position.z > 5) poles[i].position.z = -195;
+                }
 
-      document.getElementById('kpiPecasTotal').innerText = totalPecas;
-      document.getElementById('kpiPecasBoas').innerText = totalBoas;
-      document.getElementById('kpiPecasDefeito').innerText = totalDefeito;
-      document.getElementById('kpiPctDefeito').innerText = pctMedia + '%';
-    }
+                // Efeito do movimento do ciclista pedalando (POV)
+                camera.position.y = 1.25 + Math.sin(step * 2) * 0.015;
+                povGroup.position.x = Math.cos(step) * 0.008;
+                povGroup.position.y = Math.sin(step * 2) * 0.008;
+            }
 
-    // --- RESUMO ---
-    function atualizarResumoFinal() {
-      const totalPallets = pallets.length;
-      const totalVol = pallets.reduce((acc, p) => acc + p.quantidade, 0);
-      const volLinha1 = pallets.filter(p => p.linha === 'Linha 1').reduce((acc, p) => acc + p.quantidade, 0);
-      const volLinha2 = pallets.filter(p => p.linha === 'Linha 2').reduce((acc, p) => acc + p.quantidade, 0);
-      const totalExtra = pallets.filter(p => p.classificacao === 'EXTRA').length;
-      const totalComercial = pallets.filter(p => p.classificacao === 'COMERCIAL').length;
+            renderer.render(scene, camera);
+        }
 
-      document.getElementById('sumPallets').innerText = totalPallets;
-      document.getElementById('sumVolume').innerText = totalVol.toLocaleString('pt-BR') + ' M²';
-      document.getElementById('sumLinha1').innerText = volLinha1.toLocaleString('pt-BR') + ' M²';
-      document.getElementById('sumLinha2').innerText = volLinha2.toLocaleString('pt-BR') + ' M²';
-      document.getElementById('sumPctExtra').innerText = totalPallets > 0 ? ((totalExtra / totalPallets) * 100).toFixed(1) + '%' : '0%';
-      document.getElementById('sumPctComercial').innerText = totalPallets > 0 ? ((totalComercial / totalPallets) * 100).toFixed(1) + '%' : '0%';
-    }
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
 
-    // --- AÇÕES DOS 3 BOTÕES ---
-
-    // Botão 1: Baixar Apenas o PDF
-    function baixarPDFApenas() {
-      const elementosParaOcultar = document.querySelectorAll('.nav-tabs, .btn-add, .btn-action, #palletForm, #defectForm, .no-print, .table-filter-bar');
-      elementosParaOcultar.forEach(el => el.style.display = 'none');
-
-      const turno = document.getElementById('selectTurno').value;
-      const dataHoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
-      const nomeArquivo = `Relatorio_Turno_${turno}_${dataHoje}.pdf`;
-
-      const opcoes = {
-        margin:       10,
-        filename:     nomeArquivo,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
-      html2pdf().set(opcoes).from(document.body).save().then(() => {
-        elementosParaOcultar.forEach(el => el.style.display = '');
-        alert("📄 PDF baixado com sucesso na sua pasta 'Downloads'!");
-      });
-    }
-
-    // Botão 2: Abrir WhatsApp
-    function abrirWhatsAppSimples() {
-      window.open('https://api.whatsapp.com/send', '_blank');
-    }
-
-    // Botão 3: Zerar Turno
-    function confirmarZerarTurno() {
-      if (confirm("Tem certeza que deseja zerar todos os lançamentos do turno atual?")) {
-        zerarTurno();
-      }
-    }
-
-    function zerarTurno() {
-      pallets = [];
-      inspecoesDefeitos = [];
-
-      document.getElementById('palletForm').reset();
-      document.getElementById('defectForm').reset();
-
-      atualizarTabelaPallets();
-      atualizarKPIsPallets();
-      atualizarTabelaDefeitos();
-      atualizarKPIsDefeitos();
-      atualizarResumoFinal();
-      limparAssinatura();
-
-      const banner = document.getElementById('bannerStatus');
-      banner.className = 'status-banner status-pendente';
-      banner.innerText = '⏳ STATUS DO RELATÓRIO: AGUARDANDO REVISÃO DA QUALIDADE';
-
-      const selectTurno = document.getElementById('selectTurno');
-      if (selectTurno.value === 'A') selectTurno.value = 'B';
-      else if (selectTurno.value === 'B') selectTurno.value = 'C';
-      else if (selectTurno.value === 'C') selectTurno.value = 'D';
-      else if (selectTurno.value === 'D') selectTurno.value = 'A';
-
-      alert(`Turno zerado com sucesso! Sistema pronto para o Turno ${selectTurno.value}.`);
-    }
-
-    // --- ASSINATURA ---
-    const canvas = document.getElementById('canvasAssinatura');
-    const ctx = canvas.getContext('2d');
-    let desenhando = false;
-
-    canvas.addEventListener('mousedown', () => desenhando = true);
-    canvas.addEventListener('mouseup', () => { desenhando = false; ctx.beginPath(); });
-    canvas.addEventListener('mousemove', desenhar);
-
-    canvas.addEventListener('touchstart', (e) => { desenhando = true; e.preventDefault(); });
-    canvas.addEventListener('touchend', () => { desenhando = false; ctx.beginPath(); });
-    canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      const touch = e.touches[0];
-      const rect = canvas.getBoundingClientRect();
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = '#1B2A4A';
-      ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
-      ctx.stroke();
-    });
-
-    function desenhar(e) {
-      if (!desenhando) return;
-      const rect = canvas.getBoundingClientRect();
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = '#1B2A4A';
-      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-    }
-
-    function limparAssinatura() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-
-    function aprovarRelatorio() {
-      const banner = document.getElementById('bannerStatus');
-      banner.className = 'status-banner status-aprovado';
-      banner.innerText = '✅ RELATÓRIO REVISADO E APROVADO PELO GESTOR DA QUALIDADE';
-      alert('Relatório Aprovado com Sucesso!');
-    }
-
-    // Inicialização
-    atualizarTabelaDefeitos();
-    atualizarKPIsDefeitos();
-  </script>
+        animate();
+    </script>
 </body>
 </html>
