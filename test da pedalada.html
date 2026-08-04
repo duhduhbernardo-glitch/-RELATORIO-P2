@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — Treinador Virtual & Faixa de Ritmo</title>
+    <title>Treino 3D — Treinador Virtual & Faixas de Ritmo</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
@@ -20,55 +20,54 @@
         /* HUD DO TREINADOR VIRTUAL */
         .hud-treinador {
             position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: 480px; background: rgba(0, 0, 0, 0.8);
-            border: 2px solid #2196F3; border-radius: 10px; padding: 8px 12px;
-            z-index: 3; display: flex; align-items: center; gap: 10px;
+            width: 90%; max-width: 480px; background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #2196F3; border-radius: 10px; padding: 10px 14px;
+            z-index: 3; display: flex; align-items: center; gap: 12px;
             box-shadow: 0 0 15px rgba(0,0,0,0.5); backdrop-filter: blur(5px);
             transition: border-color 0.5s;
         }
-        .treinador-avatar { font-size: 1.8rem; }
+        .treinador-avatar { font-size: 2rem; }
         .treinador-info { display: flex; flex-direction: column; }
         .treinador-nome { font-size: 0.65rem; text-transform: uppercase; color: #aaa; letter-spacing: 1px; }
-        .treinador-fala { font-size: 0.8rem; font-weight: bold; color: #fff; }
+        .treinador-fala { font-size: 0.85rem; font-weight: bold; color: #fff; }
 
         .painel-controle { 
             position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
-            width:90%; max-width:420px; background:rgba(10, 10, 12, 0.8); 
-            border-radius:12px; padding:8px 12px; border:2px solid #2196F3; 
-            z-index:2; backdrop-filter:blur(6px); display:flex; flex-direction:column; gap:6px;
+            width:90%; max-width:420px; background:rgba(10, 10, 12, 0.85); 
+            border-radius:12px; padding:10px 14px; border:2px solid #2196F3; 
+            z-index:2; backdrop-filter:blur(6px); display:flex; flex-direction:column; gap:8px;
             transition: border-color 0.5s ease;
         }
 
-        .secao-label { font-size:0.55rem; color:#aaa; text-transform:uppercase; letter-spacing:1px; margin-bottom:2px; }
+        .secao-label { font-size:0.6rem; color:#aaa; text-transform:uppercase; letter-spacing:1px; }
 
-        .opcoes-tempo, .opcoes-zona { display:flex; gap:3px; overflow-x:auto; padding-bottom:2px; }
-        .opcoes-tempo::-webkit-scrollbar, .opcoes-zona::-webkit-scrollbar { display:none; }
+        .opcoes-tempo { display:flex; gap:4px; overflow-x:auto; padding-bottom:2px; }
+        .opcoes-tempo::-webkit-scrollbar { display:none; }
 
-        .botao-tempo, .botao-zona { 
-            padding:3px 8px; font-size:0.65rem; font-weight:bold; 
+        .botao-tempo { 
+            padding:4px 10px; font-size:0.7rem; font-weight:bold; 
             border:1px solid #333; border-radius:4px; background:rgba(0,0,0,0.6); 
             color:#ccc; cursor:pointer; white-space:nowrap; transition:all 0.3s;
         }
-        
-        .botao-zona[data-zona="z1"] { border-color:#2196F3; }
-        .botao-zona[data-zona="z2"] { border-color:#4CAF50; }
-        .botao-zona[data-zona="z3"] { border-color:#FF9800; }
-        .botao-zona[data-zona="z4"] { border-color:#F44336; }
 
         .botao-tempo.selecionado { border-color:#fff; background:rgba(255,255,255,0.2); color:#fff; }
-        .botao-zona.selecionado { color:#fff; font-weight:900; box-shadow:0 0 8px currentColor; }
 
-        .dados-treino { display:flex; justify-content:space-between; text-align:center; background:rgba(0,0,0,0.4); padding:4px 6px; border-radius:6px; }
+        .indicador-faixa {
+            font-size: 0.75rem; font-weight: bold; text-align: center;
+            padding: 4px; border-radius: 4px; background: rgba(255,255,255,0.1);
+        }
+
+        .dados-treino { display:flex; justify-content:space-between; text-align:center; background:rgba(0,0,0,0.4); padding:6px 8px; border-radius:6px; }
         .dado { flex:1; }
-        .dado span { font-size:0.8rem; font-weight:bold; color:#2196F3; font-family:monospace; transition:color 0.5s; }
+        .dado span { font-size:0.85rem; font-weight:bold; color:#2196F3; font-family:monospace; transition:color 0.5s; }
         .dado label { font-size:0.55rem; color:#888; display:block; }
 
-        .tempo-restante { font-size:1.1rem; font-weight:bold; color:#2196F3; font-family:monospace; text-align:center; transition:color 0.5s; }
-        .barra-progresso { width:100%; height:4px; background:#222; border-radius:2px; overflow:hidden; }
+        .tempo-restante { font-size:1.2rem; font-weight:bold; color:#2196F3; font-family:monospace; text-align:center; transition:color 0.5s; }
+        .barra-progresso { width:100%; height:5px; background:#222; border-radius:3px; overflow:hidden; }
         .progresso { height:100%; background:#2196F3; width:0%; transition:width 0.3s, background-color 0.5s; }
 
-        .botoes-acao { display:flex; gap:4px; justify-content:center; }
-        .btn { padding:4px 10px; font-size:0.65rem; font-weight:bold; border:none; border-radius:4px; cursor:pointer; }
+        .botoes-acao { display:flex; gap:6px; justify-content:center; }
+        .btn { padding:6px 12px; font-size:0.7rem; font-weight:bold; border:none; border-radius:4px; cursor:pointer; }
         .btn.iniciar { background:#4CAF50; color:white; }
         .btn.parar { background:#f44336; color:white; }
         .btn.reiniciar { background:#ff9800; color:white; }
@@ -79,36 +78,29 @@
 <body>
 
     <div id="canvas-container">
-        <div class="tag-cenario" id="nomeCenario">🌧️ Cyber Chuva Neon</div>
+        <div class="tag-cenario" id="nomeCenario">🌧️ Cyber Chuva Neon — Pista Multifaixas</div>
     </div>
 
     <!-- PAINEL DO TREINADOR -->
     <div class="hud-treinador" id="hudTreinador">
         <div class="treinador-avatar">🚴‍♂️</div>
         <div class="treinador-info">
-            <div class="treinador-nome">Coach Virtual</div>
-            <div class="treinador-fala" id="falaTreinador">Selecione o tempo e a zona para iniciar seu treino!</div>
+            <div class="treinador-nome">Coach Virtual (Comando Automatizado)</div>
+            <div class="treinador-fala" id="falaTreinador">Escolha a duração para iniciar o treino guiado por faixas!</div>
         </div>
     </div>
 
     <div class="painel-controle" id="painelControle">
-        <div class="secao-label">Duração:</div>
+        <div class="secao-label">Duração do Treino:</div>
         <div class="opcoes-tempo">
             <button class="botao-tempo" data-segundos="300">5m</button>
             <button class="botao-tempo" data-segundos="600">10m</button>
             <button class="botao-tempo" data-segundos="900">15m</button>
             <button class="botao-tempo" data-segundos="1200">20m</button>
             <button class="botao-tempo" data-segundos="1800">30m</button>
-            <button class="botao-tempo" data-segundos="3600">60m</button>
         </div>
 
-        <div class="secao-label">Zona de Esforço:</div>
-        <div class="opcoes-zona">
-            <button class="botao-zona selecionado" data-zona="z1" data-vel="18" data-rpm="65" data-cor="#2196F3">Z1 Aquecimento</button>
-            <button class="botao-zona" data-zona="z2" data-vel="25" data-rpm="80" data-cor="#4CAF50">Z2 Moderado</button>
-            <button class="botao-zona" data-zona="z3" data-vel="32" data-rpm="95" data-cor="#FF9800">Z3 Limiar</button>
-            <button class="botao-zona" data-zona="z4" data-vel="42" data-rpm="115" data-cor="#F44336">Z4 Sprint</button>
-        </div>
+        <div class="indicador-faixa" id="indicadorFaixa">Faixa Atual: Z1 Aquecimento</div>
 
         <div class="dados-treino">
             <div class="dado"><span id="cal">0</span><label>Kcal</label></div>
@@ -121,7 +113,7 @@
         <div class="barra-progresso"><div class="progresso" id="barra"></div></div>
 
         <div class="botoes-acao">
-            <button class="btn iniciar" id="btnIniciar" disabled>Iniciar</button>
+            <button class="btn iniciar" id="btnIniciar" disabled>Iniciar Treino</button>
             <button class="btn parar" id="btnParar" disabled>Pausar</button>
             <button class="btn reiniciar" id="btnReiniciar" disabled>Reiniciar</button>
             <button class="btn tela-cheia" id="btnTela">Tela Cheia</button>
@@ -129,27 +121,34 @@
     </div>
 
     <script>
-        /* TREINADOR VIRTUAL (SISTEMA DE VOZ E DICAS) */
+        /* DEFINIÇÃO DAS ZONAS / FAIXAS DA RUA */
+        const zonas = {
+            z1: { nome: "Z1 Aquecimento", xPos: -3.0, vel: 18.0, rpm: 65, cor: "#2196F3", hex: 0x2196F3 },
+            z2: { nome: "Z2 Moderado",    xPos: -1.0, vel: 25.0, rpm: 80, cor: "#4CAF50", hex: 0x4CAF50 },
+            z3: { nome: "Z3 Limiar",      xPos:  1.0, vel: 32.0, rpm: 95, cor: "#FF9800", hex: 0xFF9800 },
+            z4: { nome: "Z4 Sprint",      xPos:  3.0, vel: 42.0, rpm: 115, cor: "#F44336", hex: 0xF44336 }
+        };
+
         const falasTreinador = {
             z1: [
-                "Z1 ativada! Mantenha giros leves e respiração ritmada.",
-                "Excelente para aquecimento e recuperação muscular.",
-                "Relaxe os ombros e mantenha a cadência em 65 RPM."
+                "Ajustando para a faixa Z1! Mantenha giros leves e respiração ritmada.",
+                "Z1 ativada na faixa esquerda. Excelente para recuperação.",
+                "Mantenha a cadência em 65 RPM nesta faixa."
             ],
             z2: [
-                "Ritmo de cruzeiro! Z2 é perfeita para queimar gordura e ganhar resistência.",
-                "Mantenha uma força constante nos pedais.",
-                "Cadência em torno de 80 RPM. Continue firme!"
+                "Mudando para a faixa Z2! Ritmo de cruzeiro.",
+                "Faixa Z2: Perfeita para construir resistência e queimar gordura.",
+                "Mantenha cadência firme em torno de 80 RPM!"
             ],
             z3: [
-                "Entrando na Z3! Sinta o ritmo acelerar e o coração trabalhar.",
-                "Foco no controle da respiração. Mantenha 95 RPM!",
-                "Excelente esforço, você está construindo capacidade aeróbica!"
+                "Atenção, mudando para a faixa Z3 Limiar!",
+                "Sinta o ritmo acelerar! Foco total na respiração.",
+                "Mantenha 95 RPM na faixa laranja!"
             ],
             z4: [
-                "ATENÇÃO! Z4 SPRINT! Força total nos pedais!",
-                "Segura firme no guidão! Supere seus limites!",
-                "Mantenha 115 RPM! Vamos até o final!"
+                "ATENÇÃO! Indo para a faixa Z4 SPRINT!",
+                "Força total nos pedais! Mantenha a velocidade máxima!",
+                "Superando limites na faixa vermelha! 115 RPM!"
             ]
         };
 
@@ -168,14 +167,14 @@
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1.25, 0);
+        camera.position.set(zonas.z1.xPos, 1.25, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambientLight);
 
         const headlight = new THREE.SpotLight(0xffffff, 3, 45, Math.PI / 4, 0.5);
@@ -186,6 +185,8 @@
         /* POV GUIDÃO */
         const povGroup = new THREE.Group();
         scene.add(povGroup);
+        povGroup.position.x = zonas.z1.xPos;
+
         const matHandle = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
         const matGrip = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 });
 
@@ -201,38 +202,37 @@
         const gripR = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.15), matGrip);
         gripR.rotation.z = Math.PI / 2; gripR.position.set(-0.3, 0.95, -0.5); povGroup.add(gripR);
 
-        const displayMat = new THREE.MeshBasicMaterial({ color: 0x2196F3 });
+        const displayMat = new THREE.MeshBasicMaterial({ color: zonas.z1.hex });
         const display = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), displayMat);
         display.position.set(0, 1.0, -0.48); display.rotation.x = -Math.PI / 6; povGroup.add(display);
 
-        /* PISTA E FAIXA CENTRAL DA ZONA DE RITMO */
-        const roadMat = new THREE.MeshStandardMaterial({ color: 0x15151c, roughness: 0.8 });
-        const road = new THREE.Mesh(new THREE.PlaneGeometry(12, 200), roadMat);
+        /* PISTA E FAIXAS DE RITMO MULTIPLAS */
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x111116, roughness: 0.8 });
+        const road = new THREE.Mesh(new THREE.PlaneGeometry(10, 200), roadMat);
         road.rotation.x = -Math.PI / 2; road.position.set(0, 0, -90); scene.add(road);
 
-        // FAIXA CENTRAL DE COR DA ZONA
-        const faixaCentralMat = new THREE.MeshBasicMaterial({ color: 0x2196F3 });
-        const faixaCentral = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 200), faixaCentralMat);
-        faixaCentral.rotation.x = -Math.PI / 2; faixaCentral.position.set(0, 0.005, -90); scene.add(faixaCentral);
+        // Criando as 4 faixas na rua correspondentes às Zonas
+        Object.keys(zonas).forEach(k => {
+            const z = zonas[k];
+            const faixaMat = new THREE.MeshBasicMaterial({ color: z.hex });
+            const faixa = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 200), faixaMat);
+            faixa.rotation.x = -Math.PI / 2;
+            faixa.position.set(z.xPos, 0.005, -90);
+            scene.add(faixa);
+        });
 
+        // Linhas divisórias das faixas
         const trackLines = [];
         const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const divisorX = [-2.0, 0.0, 2.0];
+        
         for (let i = 0; i < 20; i++) {
-            const line = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.01, 2), lineMat);
-            line.position.set(0, 0.01, -i * 10); scene.add(line); trackLines.push(line);
-        }
-
-        const polesGroup = new THREE.Group(); scene.add(polesGroup);
-        const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-        let lampMat = new THREE.MeshBasicMaterial({ color: 0x81C784 });
-        const poles = [];
-        for (let i = 0; i < 10; i++) {
-            const poleL = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 4), poleMat); poleL.position.set(-4.5, 2, -i * 20);
-            const lampL = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), lampMat); lampL.position.set(-4.5, 4, -i * 20);
-            const poleR = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 4), poleMat); poleR.position.set(4.5, 2, -i * 20);
-            const lampR = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), lampMat); lampR.position.set(4.5, 4, -i * 20);
-            polesGroup.add(poleL); polesGroup.add(lampL); polesGroup.add(poleR); polesGroup.add(lampR);
-            poles.push(poleL, lampL, poleR, lampR);
+            divisorX.forEach(posX => {
+                const line = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.01, 2), lineMat);
+                line.position.set(posX, 0.01, -i * 10); 
+                scene.add(line); 
+                trackLines.push(line);
+            });
         }
 
         /* CHUVA 3D */
@@ -262,11 +262,11 @@
 
         let velocidadeChuvaY = -0.08;
 
-        /* CONTROLES E ZONAS */
+        /* ELEMENTOS HUD */
         const botoesTempo = document.querySelectorAll('.botao-tempo');
-        const botoesZona = document.querySelectorAll('.botao-zona');
         const painelControle = document.getElementById('painelControle');
         const hudTreinador = document.getElementById('hudTreinador');
+        const indicadorFaixa = document.getElementById('indicadorFaixa');
         const tempoEl = document.getElementById('tempo');
         const btnIniciar = document.getElementById('btnIniciar');
         const btnParar = document.getElementById('btnParar');
@@ -280,40 +280,8 @@
 
         let tempoTotal = 0, tempoRestante = 0, cronometro = null, treinoAtivo = false;
         let calorias = 0, distancia = 0;
-        let zonaAtual = 'z1';
-        let velAlvo = 18.0;
-        let rpmAlvo = 65;
-        let corZonaAtual = "#2196F3";
-        let fatorAvancoPista = 0.3;
-
-        botoesZona.forEach(btn => {
-            btn.addEventListener('click', () => {
-                botoesZona.forEach(b => b.classList.remove('selecionado'));
-                btn.classList.add('selecionado');
-                
-                zonaAtual = btn.dataset.zona;
-                velAlvo = parseFloat(btn.dataset.vel);
-                rpmAlvo = parseInt(btn.dataset.rpm);
-                corZonaAtual = btn.dataset.cor;
-                fatorAvancoPista = velAlvo / 60;
-
-                aplicarCorZona(corZonaAtual);
-                
-                const falaSugerida = falasTreinador[zonaAtual][0];
-                falarTreinador(falaSugerida);
-            });
-        });
-
-        function aplicarCorZona(hexCor) {
-            painelControle.style.borderColor = hexCor;
-            hudTreinador.style.borderColor = hexCor;
-            tempoEl.style.color = hexCor;
-            barra.style.backgroundColor = hexCor;
-            document.querySelectorAll('.dado span').forEach(el => el.style.color = hexCor);
-            
-            displayMat.color.set(hexCor);
-            faixaCentralMat.color.set(hexCor); // Muda a cor da faixa na pista
-        }
+        let zonaChaveAtual = 'z1';
+        let xAlvoCamera = zonas.z1.xPos;
 
         botoesTempo.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -326,6 +294,25 @@
             });
         });
 
+        function alterarZonaTreinador(novaZonaKey) {
+            zonaChaveAtual = novaZonaKey;
+            const z = zonas[novaZonaKey];
+            xAlvoCamera = z.xPos;
+
+            painelControle.style.borderColor = z.cor;
+            hudTreinador.style.borderColor = z.cor;
+            tempoEl.style.color = z.cor;
+            barra.style.backgroundColor = z.cor;
+            indicadorFaixa.textContent = `Faixa Atual: ${z.nome}`;
+            indicadorFaixa.style.color = z.cor;
+            document.querySelectorAll('.dado span').forEach(el => el.style.color = z.cor);
+            displayMat.color.set(z.hex);
+
+            const falas = falasTreinador[novaZonaKey];
+            const fala = falas[Math.floor(Math.random() * falas.length)];
+            falarTreinador(fala);
+        }
+
         function formatarTempo(s) {
             const h = Math.floor(s / 3600).toString().padStart(2, '0');
             const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
@@ -334,11 +321,12 @@
         }
 
         function atualizaTela() {
+            const z = zonas[zonaChaveAtual];
             tempoEl.textContent = formatarTempo(tempoRestante);
             barra.style.width = `${tempoTotal > 0 ? ((tempoTotal - tempoRestante) / tempoTotal) * 100 : 0}%`;
             elCal.textContent = Math.round(calorias);
             elKm.textContent = distancia.toFixed(2);
-            elVel.textContent = velAlvo.toFixed(1);
+            elVel.textContent = z.vel.toFixed(1);
         }
 
         btnIniciar.addEventListener('click', () => {
@@ -346,28 +334,33 @@
             treinoAtivo = true;
             if(cronometro) clearInterval(cronometro);
             
-            falarTreinador(`Treino iniciado! Vamos juntos na ${zonaAtual.toUpperCase()}. Mantenha o ritmo!`);
+            alterarZonaTreinador('z1');
 
             cronometro = setInterval(() => {
                 tempoRestante--;
-                const multiplicadorCal = velAlvo / 15;
-                calorias += (9 * multiplicadorCal) / 60;
-                distancia += velAlvo / 3600;
+                const z = zonas[zonaChaveAtual];
 
-                elRpm.textContent = Math.round(rpmAlvo + Math.sin(tempoRestante / 2) * 4);
-                atualizaTela();
-                
-                // Treinador dá dicas periódicas a cada 45 segundos de treino
-                if (tempoRestante > 5 && tempoRestante % 45 === 0) {
-                    const frasesDaZona = falasTreinador[zonaAtual];
-                    const fraseAleatoria = frasesDaZona[Math.floor(Math.random() * frasesDaZona.length)];
-                    falarTreinador(fraseAleatoria);
+                // Treinador altera as zonas dinamicamente com base no progresso do treino
+                const progresso = (tempoTotal - tempoRestante) / tempoTotal;
+                if (progresso >= 0.8 && zonaChaveAtual !== 'z4') {
+                    alterarZonaTreinador('z4');
+                } else if (progresso >= 0.5 && progresso < 0.8 && zonaChaveAtual !== 'z3') {
+                    alterarZonaTreinador('z3');
+                } else if (progresso >= 0.2 && progresso < 0.5 && zonaChaveAtual !== 'z2') {
+                    alterarZonaTreinador('z2');
                 }
+
+                const multiplicadorCal = z.vel / 15;
+                calorias += (9 * multiplicadorCal) / 60;
+                distancia += z.vel / 3600;
+
+                elRpm.textContent = Math.round(z.rpm + Math.sin(tempoRestante / 2) * 4);
+                atualizaTela();
 
                 if (tempoRestante <= 0) {
                     clearInterval(cronometro);
                     treinoAtivo = false;
-                    falarTreinador("Parabéns! Treino concluído com sucesso! Excelente trabalho!");
+                    falarTreinador("Parabéns! O treino foi concluído com sucesso!");
                     btnIniciar.disabled = btnParar.disabled = true;
                 }
             }, 1000);
@@ -382,7 +375,7 @@
                 clearInterval(cronometro);
                 treinoAtivo = false;
                 btnParar.textContent = "Continuar";
-                falarTreinador("Treino pausado. Respire fundo!");
+                falarTreinador("Treino pausado.");
             } else {
                 btnIniciar.click();
                 btnParar.textContent = "Pausar";
@@ -394,8 +387,9 @@
             tempoRestante = tempoTotal;
             calorias = 0; distancia = 0;
             treinoAtivo = false;
+            alterarZonaTreinador('z1');
             atualizaTela();
-            falarTreinador("Treino reiniciado. Escolha sua zona e comece quando estiver pronto!");
+            falarTreinador("Treino reiniciado!");
             btnIniciar.disabled = false;
             btnParar.disabled = true;
             btnReiniciar.disabled = true;
@@ -412,7 +406,11 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // Mover chuva
+            // Transição suave lateral para trocar de faixa da pista
+            camera.position.x += (xAlvoCamera - camera.position.x) * 0.05;
+            povGroup.position.x = camera.position.x;
+
+            // Animação da chuva
             const posAttr = rainGeo.attributes.position;
             for (let i = 0; i < QTD_GOTAS; i++) {
                 posAttr.array[i * 6 + 1] += velocidadeChuvaY;
@@ -427,22 +425,17 @@
             posAttr.needsUpdate = true;
 
             if (treinoAtivo) {
-                const frequenciaVibracao = rpmAlvo / 35;
+                const z = zonas[zonaChaveAtual];
+                const frequenciaVibracao = z.rpm / 35;
                 step += 0.04 * frequenciaVibracao;
-                const speed = fatorAvancoPista;
+                const speed = z.vel / 60;
 
                 trackLines.forEach(line => {
                     line.position.z += speed;
                     if (line.position.z > 5) line.position.z = -195;
                 });
 
-                for (let i = 0; i < poles.length; i++) {
-                    poles[i].position.z += speed;
-                    if (poles[i].position.z > 5) poles[i].position.z = -195;
-                }
-
                 camera.position.y = 1.25 + Math.sin(step * 2) * 0.015;
-                povGroup.position.x = Math.cos(step) * 0.008;
                 povGroup.position.y = Math.sin(step * 2) * 0.008;
             }
 
