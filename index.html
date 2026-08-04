@@ -3,112 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — HIIT com Troca Automática a Cada 30s</title>
+    <title>Treino 3D — HIIT Complexo Mobile</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
-        body, html { width:100%; height:100%; overflow:hidden; background:#000; color:#fff; }
+        * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { width:100%; height:100%; overflow:hidden; background:#050508; color:#fff; -webkit-user-select:none; user-select:none; }
 
         #canvas-container { width:100vw; height:100vh; position:absolute; top:0; left:0; z-index:1; }
 
-        .tag-cenario { 
-            position:absolute; top:8px; left:8px; 
-            background:rgba(0,0,0,0.6); padding:4px 8px; border-radius:10px; 
-            font-size:0.65rem; color:#81C784; z-index:2; pointer-events:none;
+        /* HUD SUPERIOR COMPLEXO */
+        .hud-superior {
+            position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+            width: 94%; max-width: 500px; z-index: 10;
+            display: flex; flex-direction: column; gap: 4px; pointer-events: none;
         }
 
+        .hud-linha-topo {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(10, 10, 15, 0.85); border: 1px solid rgba(33, 150, 243, 0.4);
+            border-radius: 8px; padding: 4px 10px; backdrop-filter: blur(8px);
+        }
+
+        .treinador-fala-mini { font-size: 0.7rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
+        .fps-badge { font-size: 0.55rem; color: #81C784; font-family: monospace; background: rgba(0,255,0,0.1); padding: 1px 4px; border-radius: 4px; }
+
+        /* MINI GRÁFICO DE ESPECTRO/ZONAS */
+        .espectro-zonas {
+            display: flex; gap: 3px; height: 16px; width: 100%;
+            background: rgba(0,0,0,0.5); border-radius: 4px; padding: 2px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .bloco-zona { flex: 1; border-radius: 2px; opacity: 0.3; transition: all 0.3s; display: flex; align-items: center; justify-content: center; font-size: 0.45rem; font-weight: bold; }
+        .bloco-zona.ativo { opacity: 1; transform: scaleY(1.15); box-shadow: 0 0 8px currentColor; }
+
+        /* SETAS DOS PÉS OTIMIZADAS PARA MOBILE */
         .painel-seta {
-            position: fixed; top: 50%; transform: translateY(-50%);
-            width: 75px; height: 120px; background: rgba(0, 0, 0, 0.85);
-            border: 2px solid #555; border-radius: 12px; z-index: 100;
+            position: fixed; bottom: 175px; 
+            width: 68px; height: 95px; background: rgba(10, 10, 15, 0.88);
+            border: 2px solid rgba(255,255,255,0.15); border-radius: 12px; z-index: 100;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            backdrop-filter: blur(6px); transition: all 0.15s ease-out;
-            pointer-events: none;
+            backdrop-filter: blur(6px); transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
-        .painel-seta.esquerda { left: 10px; }
-        .painel-seta.direita { right: 10px; }
+        .painel-seta.esquerda { left: calc(50% - 82px); }
+        .painel-seta.direita { right: calc(50% - 82px); }
 
-        .seta-rotulo { font-size: 0.6rem; font-weight: bold; color: #aaa; text-transform: uppercase; margin-bottom: 2px; }
-        .seta-icone { font-size: 2.5rem; transition: transform 0.15s ease, color 0.15s ease; line-height: 1; }
-        .seta-status { font-size: 0.65rem; font-weight: bold; margin-top: 4px; }
+        .seta-rotulo { font-size: 0.5rem; font-weight: 800; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .seta-icone { font-size: 2rem; transition: transform 0.1s ease, color 0.1s ease; line-height: 1; }
+        .seta-status { font-size: 0.55rem; font-weight: 900; margin-top: 2px; font-family: monospace; }
 
         .painel-seta.ativo-cima {
             border-color: #2196F3;
-            box-shadow: 0 0 18px rgba(33, 150, 243, 0.8);
-            background: rgba(10, 30, 50, 0.9);
+            box-shadow: 0 0 20px rgba(33, 150, 243, 0.7), inset 0 0 10px rgba(33, 150, 243, 0.3);
+            background: rgba(10, 25, 45, 0.95);
         }
-        .painel-seta.ativo-cima .seta-icone { color: #2196F3; transform: translateY(-5px); }
+        .painel-seta.ativo-cima .seta-icone { color: #2196F3; transform: translateY(-3px) scale(1.1); }
         .painel-seta.ativo-cima .seta-status { color: #2196F3; }
 
         .painel-seta.ativo-baixo {
-            border-color: #444; opacity: 0.5;
+            border-color: rgba(255,255,255,0.1); opacity: 0.45;
         }
-        .painel-seta.ativo-baixo .seta-icone { color: #666; transform: translateY(5px); }
-        .painel-seta.ativo-baixo .seta-status { color: #777; }
+        .painel-seta.ativo-baixo .seta-icone { color: #555; transform: translateY(3px); }
+        .painel-seta.ativo-baixo .seta-status { color: #666; }
 
-        .hud-treinador {
-            position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
-            width: 85%; max-width: 480px; background: rgba(0, 0, 0, 0.85);
-            border: 2px solid #2196F3; border-radius: 10px; padding: 8px 12px;
-            z-index: 10; display: flex; align-items: center; gap: 10px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.5); backdrop-filter: blur(5px);
-            transition: border-color 0.5s;
-        }
-        .treinador-avatar { font-size: 1.8rem; }
-        .treinador-info { display: flex; flex-direction: column; }
-        .treinador-nome { font-size: 0.6rem; text-transform: uppercase; color: #aaa; letter-spacing: 1px; }
-        .treinador-fala { font-size: 0.8rem; font-weight: bold; color: #fff; }
-
+        /* PAINEL DE CONTROLE INFERIOR AVANÇADO */
         .painel-controle { 
-            position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
-            width:90%; max-width:420px; background:rgba(10, 10, 12, 0.85); 
-            border-radius:12px; padding:8px 12px; border:2px solid #2196F3; 
-            z-index:10; backdrop-filter:blur(6px); display:flex; flex-direction:column; gap:6px;
-            transition: border-color 0.5s ease;
+            position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+            width: 94%; max-width: 500px; background: rgba(12, 12, 18, 0.92); 
+            border-radius: 14px; padding: 8px 12px; border: 1px solid rgba(33, 150, 243, 0.5); 
+            z-index: 10; backdrop-filter: blur(10px); display: flex; flex-direction: column; gap: 5px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8); transition: border-color 0.4s ease;
         }
 
-        .secao-label { font-size:0.55rem; color:#aaa; text-transform:uppercase; letter-spacing:1px; }
+        .painel-topo-info { display: flex; justify-content: space-between; align-items: center; }
+        .secao-label { font-size: 0.5rem; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        .indicador-faixa { font-size: 0.65rem; font-weight: 800; color: #2196F3; text-transform: uppercase; font-family: monospace; }
 
-        .opcoes-tempo { display:flex; gap:4px; overflow-x:auto; padding-bottom:2px; }
-        .opcoes-tempo::-webkit-scrollbar { display:none; }
+        .opcoes-tempo { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 1px; }
+        .opcoes-tempo::-webkit-scrollbar { display: none; }
 
         .botao-tempo { 
-            padding:4px 8px; font-size:0.65rem; font-weight:bold; 
-            border:1px solid #333; border-radius:4px; background:rgba(0,0,0,0.6); 
-            color:#ccc; cursor:pointer; white-space:nowrap; transition:all 0.3s;
+            padding: 3px 6px; font-size: 0.6rem; font-weight: bold; 
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; background: rgba(0,0,0,0.5); 
+            color: #aaa; cursor: pointer; white-space: nowrap; transition: all 0.2s;
         }
+        .botao-tempo.selecionado { border-color: #2196F3; background: rgba(33, 150, 243, 0.25); color: #fff; box-shadow: 0 0 8px rgba(33,150,243,0.4); }
 
-        .botao-tempo.selecionado { border-color:#fff; background:rgba(255,255,255,0.2); color:#fff; }
+        /* TELEMETRIA COMPLEXA */
+        .grid-telemetria { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .dado-card { display: flex; flex-direction: column; }
+        .dado-card span { font-size: 0.85rem; font-weight: 900; color: #2196F3; font-family: monospace; transition: color 0.4s; }
+        .dado-card label { font-size: 0.45rem; color: #777; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        .indicador-faixa {
-            font-size: 0.7rem; font-weight: bold; text-align: center;
-            padding: 3px; border-radius: 4px; background: rgba(255,255,255,0.1);
-        }
+        .bloco-tempo-progresso { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .tempo-restante { font-size: 1.15rem; font-weight: 900; color: #2196F3; font-family: monospace; letter-spacing: -0.5px; transition: color 0.4s; }
+        
+        .barra-container { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+        .barra-progresso { width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+        .progresso { height: 100%; background: #2196F3; width: 0%; transition: width 0.2s linear, background-color 0.4s; }
+        .sub-progresso-etapa { font-size: 0.45rem; color: #aaa; font-family: monospace; text-align: right; }
 
-        .dados-treino { display:flex; justify-content:space-between; text-align:center; background:rgba(0,0,0,0.4); padding:4px 6px; border-radius:6px; }
-        .dado { flex:1; }
-        .dado span { font-size:0.8rem; font-weight:bold; color:#2196F3; font-family:monospace; transition:color 0.5s; }
-        .dado label { font-size:0.5rem; color:#888; display:block; }
-
-        .tempo-restante { font-size:1.1rem; font-weight:bold; color:#2196F3; font-family:monospace; text-align:center; transition:color 0.5s; }
-        .barra-progresso { width:100%; height:4px; background:#222; border-radius:3px; overflow:hidden; }
-        .progresso { height:100%; background:#2196F3; width:0%; transition:width 0.3s, background-color 0.5s; }
-
-        .botoes-acao { display:flex; gap:6px; justify-content:center; }
-        .btn { padding:5px 10px; font-size:0.65rem; font-weight:bold; border:none; border-radius:4px; cursor:pointer; }
-        .btn.iniciar { background:#4CAF50; color:white; }
-        .btn.parar { background:#f44336; color:white; }
-        .btn.reiniciar { background:#ff9800; color:white; }
-        .btn.tela-cheia { background:#2196F3; color:white; }
-        .btn:disabled { opacity:0.3; cursor:not-allowed; }
+        .botoes-acao { display: flex; gap: 5px; }
+        .btn { flex: 1; padding: 6px; font-size: 0.6rem; font-weight: 800; border: none; border-radius: 6px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: transform 0.1s, opacity 0.2s; }
+        .btn:active { transform: scale(0.96); }
+        .btn.iniciar { background: #2E7D32; color: #fff; box-shadow: 0 2px 10px rgba(46,125,50,0.4); }
+        .btn.parar { background: #C62828; color: #fff; box-shadow: 0 2px 10px rgba(198,40,40,0.4); }
+        .btn.reiniciar { background: #EF6C00; color: #fff; }
+        .btn.tela-cheia { background: #1565C0; color: #fff; }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
     </style>
 </head>
 <body>
 
-    <div id="canvas-container">
-        <div class="tag-cenario">⚡ Ritmo HIIT 3D — Troca a cada 30s</div>
+    <div id="canvas-container"></div>
+
+    <!-- HUD SUPERIOR COMPLEXO -->
+    <div class="hud-superior">
+        <div class="hud-linha-topo">
+            <div class="treinador-fala-mini" id="falaTreinador">⚡ Sistema pronto. Selecione o tempo.</div>
+            <div class="fps-badge" id="fpsCounter">60 FPS</div>
+        </div>
+        <div class="espectro-zonas">
+            <div class="bloco-zona" id="bz1" style="color:#2196F3; background:rgba(33,150,243,0.2)">Z1</div>
+            <div class="bloco-zona" id="bz2" style="color:#4CAF50; background:rgba(76,175,80,0.2)">Z2</div>
+            <div class="bloco-zona" id="bz3" style="color:#FF9800; background:rgba(255,152,0,0.2)">Z3</div>
+            <div class="bloco-zona" id="bz4" style="color:#F44336; background:rgba(244,67,54,0.2)">Z4</div>
+        </div>
     </div>
 
+    <!-- SETAS DOS PÉS -->
     <div class="painel-seta esquerda" id="setaEsqBox">
         <div class="seta-rotulo">PÉ ESQ</div>
         <div class="seta-icone" id="setaEsqIcone">⬆</div>
@@ -121,51 +143,50 @@
         <div class="seta-status" id="setaDirStatus">BAIXO</div>
     </div>
 
-    <div class="hud-treinador" id="hudTreinador">
-        <div class="treinador-avatar">🚴‍♂️</div>
-        <div class="treinador-info">
-            <div class="treinador-nome">Coach HIIT Virtual</div>
-            <div class="treinador-fala" id="falaTreinador">Escolha o tempo e clique em Iniciar!</div>
-        </div>
-    </div>
-
+    <!-- PAINEL DE CONTROLE MOBILE COMPLEXO -->
     <div class="painel-controle" id="painelControle">
-        <div class="secao-label">Duração Total:</div>
+        <div class="painel-topo-info">
+            <div class="secao-label">Duração / Ciclo 30s:</div>
+            <div class="indicador-faixa" id="indicadorFaixa">Z1 Aquecimento</div>
+        </div>
+
         <div class="opcoes-tempo">
-            <button class="botao-tempo" data-segundos="300">5m</button>
-            <button class="botao-tempo" data-segundos="600">10m</button>
-            <button class="botao-tempo" data-segundos="900">15m</button>
-            <button class="botao-tempo" data-segundos="1200">20m</button>
-            <button class="botao-tempo" data-segundos="1800">30m</button>
+            <button class="botao-tempo" data-segundos="300">5 Min</button>
+            <button class="botao-tempo" data-segundos="600">10 Min</button>
+            <button class="botao-tempo" data-segundos="900">15 Min</button>
+            <button class="botao-tempo" data-segundos="1200">20 Min</button>
+            <button class="botao-tempo" data-segundos="1800">30 Min</button>
         </div>
 
-        <div class="indicador-faixa" id="indicadorFaixa">Faixa Atual: Z1 Aquecimento</div>
-
-        <div class="dados-treino">
-            <div class="dado"><span id="cal">0</span><label>Kcal</label></div>
-            <div class="dado"><span id="km">0.00</span><label>Km</label></div>
-            <div class="dado"><span id="vel">18.0</span><label>Km/h</label></div>
-            <div class="dado"><span id="rpm">65</span><label>RPM</label></div>
+        <div class="grid-telemetria">
+            <div class="dado-card"><span id="cal">0.0</span><label>Kcal</label></div>
+            <div class="dado-card"><span id="km">0.00</span><label>Km</label></div>
+            <div class="dado-card"><span id="vel">18.0</span><label>Km/h</label></div>
+            <div class="dado-card"><span id="rpm">65</span><label>RPM</label></div>
         </div>
 
-        <div class="tempo-restante" id="tempo">00:00:00</div>
-        <div class="barra-progresso"><div class="progresso" id="barra"></div></div>
+        <div class="bloco-tempo-progresso">
+            <div class="tempo-restante" id="tempo">00:00:00</div>
+            <div class="barra-container">
+                <div class="barra-progresso"><div class="progresso" id="barra"></div></div>
+                <div class="sub-progresso-etapa" id="subProgressoEtapa">Etapa: 30s restantes</div>
+            </div>
+        </div>
 
         <div class="botoes-acao">
-            <button class="btn iniciar" id="btnIniciar" disabled>Iniciar HIIT</button>
+            <button class="btn iniciar" id="btnIniciar" disabled>Iniciar</button>
             <button class="btn parar" id="btnParar" disabled>Pausar</button>
-            <button class="btn reiniciar" id="btnReiniciar" disabled>Reiniciar</button>
-            <button class="btn tela-cheia" id="btnTela">Tela Cheia</button>
+            <button class="btn reiniciar" id="btnReiniciar" disabled>Reset</button>
+            <button class="btn tela-cheia" id="btnTela">Tela</button>
         </div>
     </div>
 
     <script>
-        /* CICLO COM TROCA EXATA A CADA 30 SEGUNDOS */
         const cicloHIIT = [
-            { zona: 'z1', duracao: 30, fala: "Aquecimento Z1 por 30 segundos. Mantenha o ritmo!" },
-            { zona: 'z2', duracao: 30, fala: "Z2 Recuperação ativa. Fluxo constante!" },
-            { zona: 'z3', duracao: 30, fala: "Z3 Limiar! Acelere a cadência!" },
-            { zona: 'z4', duracao: 30, fala: "Z4 SPRINT! Força total por 30 segundos!" }
+            { zona: 'z1', duracao: 30, fala: "Z1 Aquecimento ativado. Cadência suave." },
+            { zona: 'z2', duracao: 30, fala: "Z2 Recuperação ativa. Ritmo constante." },
+            { zona: 'z3', duracao: 30, fala: "Z3 Limiar alcançado! Acelere os pés." },
+            { zona: 'z4', duracao: 30, fala: "Z4 SPRINT MÁXIMO! Força total!" }
         ];
 
         const zonas = {
@@ -181,81 +202,87 @@
                 window.speechSynthesis.cancel();
                 const fala = new SpeechSynthesisUtterance(texto);
                 fala.lang = 'pt-BR';
-                fala.rate = 1.0;
+                fala.rate = 1.1;
                 window.speechSynthesis.speak(fala);
             }
         }
 
+        /* CONFIGURAÇÃO THREE.JS OTIMIZADA E COMPLEXA */
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+        scene.fog = new THREE.FogExp2(0x050508, 0.035);
+
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(zonas.z1.xPos, 1.25, 0);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        // Iluminação complexa
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
         scene.add(ambientLight);
 
-        const headlight = new THREE.SpotLight(0xffffff, 3, 45, Math.PI / 4, 0.5);
-        headlight.position.set(0, 1.0, -0.2);
-        headlight.target.position.set(0, 0, -20);
+        const headlight = new THREE.SpotLight(0xffffff, 3.5, 50, Math.PI / 3, 0.4);
+        headlight.position.set(0, 1.2, -0.1);
+        headlight.target.position.set(0, 0, -25);
         scene.add(headlight); scene.add(headlight.target);
 
+        // Grupo POV do Guidão (Primeira Pessoa)
         const povGroup = new THREE.Group();
         scene.add(povGroup);
         povGroup.position.x = zonas.z1.xPos;
 
-        const matHandle = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
-        const matGrip = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 });
+        const matHandle = new THREE.MeshStandardMaterial({ color: 0x111115, roughness: 0.4, metalness: 0.8 });
+        const matGrip = new THREE.MeshStandardMaterial({ color: 0x222225, roughness: 0.9 });
 
         const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.3), matHandle);
         stem.rotation.x = Math.PI / 3; stem.position.set(0, 0.85, -0.4); povGroup.add(stem);
 
-        const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.7), matHandle);
+        const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.75), matHandle);
         bar.rotation.z = Math.PI / 2; bar.position.set(0, 0.95, -0.5); povGroup.add(bar);
 
         const gripL = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.15), matGrip);
-        gripL.rotation.z = Math.PI / 2; gripL.position.set(0.3, 0.95, -0.5); povGroup.add(gripL);
+        gripL.rotation.z = Math.PI / 2; gripL.position.set(0.32, 0.95, -0.5); povGroup.add(gripL);
 
         const gripR = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.15), matGrip);
-        gripR.rotation.z = Math.PI / 2; gripR.position.set(-0.3, 0.95, -0.5); povGroup.add(gripR);
+        gripR.rotation.z = Math.PI / 2; gripR.position.set(-0.32, 0.95, -0.5); povGroup.add(gripR);
 
         const displayMat = new THREE.MeshBasicMaterial({ color: zonas.z1.hex });
-        const display = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), displayMat);
+        const display = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.09, 0.02), displayMat);
         display.position.set(0, 1.0, -0.48); display.rotation.x = -Math.PI / 6; povGroup.add(display);
 
-        const roadMat = new THREE.MeshStandardMaterial({ color: 0x111116, roughness: 0.8 });
-        const road = new THREE.Mesh(new THREE.PlaneGeometry(10, 200), roadMat);
-        road.rotation.x = -Math.PI / 2; road.position.set(0, 0, -90); scene.add(road);
+        // Pista com faixas dinâmicas
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0e, roughness: 0.8 });
+        const road = new THREE.Mesh(new THREE.PlaneGeometry(12, 250), roadMat);
+        road.rotation.x = -Math.PI / 2; road.position.set(0, 0, -110); scene.add(road);
 
         Object.keys(zonas).forEach(k => {
             const z = zonas[k];
             const faixaMat = new THREE.MeshBasicMaterial({ color: z.hex });
-            const faixa = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 200), faixaMat);
+            const faixa = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 250), faixaMat);
             faixa.rotation.x = -Math.PI / 2;
-            faixa.position.set(z.xPos, 0.005, -90);
+            faixa.position.set(z.xPos, 0.005, -110);
             scene.add(faixa);
         });
 
         const trackLines = [];
         const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        const divisorX = [-2.0, 0.0, 2.0];
+        const divisorX = [-2.2, 0.0, 2.2];
         
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 25; i++) {
             divisorX.forEach(posX => {
-                const line = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.01, 2), lineMat);
+                const line = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 2.5), lineMat);
                 line.position.set(posX, 0.01, -i * 10); 
                 scene.add(line); 
                 trackLines.push(line);
             });
         }
 
+        // Elementos de UI DOM
         const botoesTempo = document.querySelectorAll('.botao-tempo');
         const painelControle = document.getElementById('painelControle');
-        const hudTreinador = document.getElementById('hudTreinador');
         const indicadorFaixa = document.getElementById('indicadorFaixa');
         const tempoEl = document.getElementById('tempo');
         const btnIniciar = document.getElementById('btnIniciar');
@@ -263,10 +290,12 @@
         const btnReiniciar = document.getElementById('btnReiniciar');
         const btnTela = document.getElementById('btnTela');
         const barra = document.getElementById('barra');
+        const subProgressoEtapa = document.getElementById('subProgressoEtapa');
         const elCal = document.getElementById('cal');
         const elKm = document.getElementById('km');
         const elVel = document.getElementById('vel');
         const elRpm = document.getElementById('rpm');
+        const fpsCounter = document.getElementById('fpsCounter');
 
         const setaEsqBox = document.getElementById('setaEsqBox');
         const setaDirBox = document.getElementById('setaDirBox');
@@ -295,6 +324,17 @@
             });
         });
 
+        function atualizarBlocosEspectro(zonaAtiva) {
+            ['z1', 'z2', 'z3', 'z4'].forEach(z => {
+                const el = document.getElementById('b' + z);
+                if (z === zonaAtiva) {
+                    el.classList.add('ativo');
+                } else {
+                    el.classList.remove('ativo');
+                }
+            });
+        }
+
         function aplicarEtapaHIIT(etapaIndex) {
             const etapa = cicloHIIT[etapaIndex];
             zonaChaveAtual = etapa.zona;
@@ -304,14 +344,14 @@
             xAlvoCamera = z.xPos;
 
             painelControle.style.borderColor = z.cor;
-            hudTreinador.style.borderColor = z.cor;
             tempoEl.style.color = z.cor;
             barra.style.backgroundColor = z.cor;
-            indicadorFaixa.textContent = `HIIT Faixa: ${z.nome}`;
+            indicadorFaixa.textContent = z.nome;
             indicadorFaixa.style.color = z.cor;
-            document.querySelectorAll('.dado span').forEach(el => el.style.color = z.cor);
+            document.querySelectorAll('.dado-card span').forEach(el => el.style.color = z.cor);
             displayMat.color.set(z.hex);
 
+            atualizarBlocosEspectro(zonaChaveAtual);
             falarTreinador(etapa.fala);
         }
 
@@ -326,7 +366,12 @@
             const z = zonas[zonaChaveAtual];
             tempoEl.textContent = formatarTempo(tempoRestante);
             barra.style.width = `${tempoTotal > 0 ? ((tempoTotal - tempoRestante) / tempoTotal) * 100 : 0}%`;
-            elCal.textContent = Math.round(calorias);
+            
+            const etapaAtual = cicloHIIT[indiceEtapaHIIT];
+            const restanteEtapa = etapaAtual.duracao - tempoSegundosEtapa;
+            subProgressoEtapa.textContent = `Etapa (${etapaAtual.zona.toUpperCase()}): ${restanteEtapa}s`;
+
+            elCal.textContent = calorias.toFixed(1);
             elKm.textContent = distancia.toFixed(2);
             elVel.textContent = z.vel.toFixed(1);
         }
@@ -402,9 +447,21 @@
             else document.exitFullscreen();
         });
 
+        // Loop de Renderização e Performance FPS
         let step = 0;
-        function animate() {
+        let lastTime = performance.now();
+        let frameCount = 0;
+
+        function animate(currentTime) {
             requestAnimationFrame(animate);
+
+            // Medidor de FPS otimizado
+            frameCount++;
+            if (currentTime - lastTime >= 1000) {
+                fpsCounter.textContent = `${frameCount} FPS`;
+                frameCount = 0;
+                lastTime = currentTime;
+            }
 
             camera.position.x += (xAlvoCamera - camera.position.x) * 0.08;
             povGroup.position.x = camera.position.x;
@@ -416,7 +473,7 @@
 
                 trackLines.forEach(line => {
                     line.position.z += speed;
-                    if (line.position.z > 5) line.position.z = -195;
+                    if (line.position.z > 5) line.position.z = -245;
                 });
 
                 camera.position.y = 1.25 + Math.sin(step * 2) * 0.015;
@@ -458,7 +515,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        animate();
+        requestAnimationFrame(animate);
     </script>
 </body>
 </html>
