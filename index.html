@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — Com Contagem Regressiva Sonora</title>
+    <title>Treino 3D — Efeitos de Clima</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
@@ -89,9 +89,8 @@
     </div>
 
     <script>
-        /* SINTETIZADOR DE ÁUDIO WEB AUDIO API */
+        /* ÁUDIO SINTETIZADO */
         let audioCtx = null;
-
         function getAudioContext() {
             if (!audioCtx) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -100,53 +99,39 @@
             return audioCtx;
         }
 
-        // Som de bip curto para os últimos 3 segundos
         function tocarSomBipRegressivo() {
             const ctx = getAudioContext();
             if (!ctx) return;
-            
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(440, ctx.currentTime); // Nota A4
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
             gain.gain.setValueAtTime(0.2, ctx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.15);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.15);
         }
 
-        // Som duplo de encerramento
         function tocarSomFimTreino() {
             const ctx = getAudioContext();
             if (!ctx) return;
-
-            const osc1 = ctx.createOscillator();
-            const gain1 = ctx.createGain();
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
+            const osc1 = ctx.createOscillator(); const gain1 = ctx.createGain();
+            osc1.type = 'sine'; osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
             gain1.gain.setValueAtTime(0.3, ctx.currentTime);
             gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-            osc1.connect(gain1);
-            gain1.connect(ctx.destination);
-            osc1.start(ctx.currentTime);
-            osc1.stop(ctx.currentTime + 0.3);
+            osc1.connect(gain1); gain1.connect(ctx.destination);
+            osc1.start(ctx.currentTime); osc1.stop(ctx.currentTime + 0.3);
 
-            const osc2 = ctx.createOscillator();
-            const gain2 = ctx.createGain();
-            osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(880, ctx.currentTime + 0.35);
+            const osc2 = ctx.createOscillator(); const gain2 = ctx.createGain();
+            osc2.type = 'sine'; osc2.frequency.setValueAtTime(880, ctx.currentTime + 0.35);
             gain2.gain.setValueAtTime(0.4, ctx.currentTime + 0.35);
             gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.9);
-            osc2.connect(gain2);
-            gain2.connect(ctx.destination);
-            osc2.start(ctx.currentTime + 0.35);
-            osc2.stop(ctx.currentTime + 0.9);
+            osc2.connect(gain2); gain2.connect(ctx.destination);
+            osc2.start(ctx.currentTime + 0.35); osc2.stop(ctx.currentTime + 0.9);
         }
 
+        /* CONFIGURAÇÃO THREE.JS */
         const container = document.getElementById('canvas-container');
-        
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 1.25, 0);
@@ -165,78 +150,83 @@
         scene.add(headlight);
         scene.add(headlight.target);
 
+        /* POV GUIDÃO */
         const povGroup = new THREE.Group();
         scene.add(povGroup);
-
         const matHandle = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
         const matGrip = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 });
 
         const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.3), matHandle);
-        stem.rotation.x = Math.PI / 3;
-        stem.position.set(0, 0.85, -0.4);
-        povGroup.add(stem);
+        stem.rotation.x = Math.PI / 3; stem.position.set(0, 0.85, -0.4); povGroup.add(stem);
 
         const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.7), matHandle);
-        bar.rotation.z = Math.PI / 2;
-        bar.position.set(0, 0.95, -0.5);
-        povGroup.add(bar);
+        bar.rotation.z = Math.PI / 2; bar.position.set(0, 0.95, -0.5); povGroup.add(bar);
 
         const gripL = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.15), matGrip);
-        gripL.rotation.z = Math.PI / 2;
-        gripL.position.set(0.3, 0.95, -0.5);
-        povGroup.add(gripL);
+        gripL.rotation.z = Math.PI / 2; gripL.position.set(0.3, 0.95, -0.5); povGroup.add(gripL);
 
         const gripR = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.15), matGrip);
-        gripR.rotation.z = Math.PI / 2;
-        gripR.position.set(-0.3, 0.95, -0.5);
-        povGroup.add(gripR);
+        gripR.rotation.z = Math.PI / 2; gripR.position.set(-0.3, 0.95, -0.5); povGroup.add(gripR);
 
         const display = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), new THREE.MeshBasicMaterial({ color: 0x4CAF50 }));
-        display.position.set(0, 1.0, -0.48);
-        display.rotation.x = -Math.PI / 6;
-        povGroup.add(display);
+        display.position.set(0, 1.0, -0.48); display.rotation.x = -Math.PI / 6; povGroup.add(display);
 
+        /* PISTA E POSTES */
         const roadMat = new THREE.MeshStandardMaterial({ color: 0x15151c, roughness: 0.8 });
         const road = new THREE.Mesh(new THREE.PlaneGeometry(12, 200), roadMat);
-        road.rotation.x = -Math.PI / 2;
-        road.position.set(0, 0, -90);
-        scene.add(road);
+        road.rotation.x = -Math.PI / 2; road.position.set(0, 0, -90); scene.add(road);
 
         const trackLines = [];
         const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
         for (let i = 0; i < 20; i++) {
             const line = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.01, 2), lineMat);
-            line.position.set(0, 0.01, -i * 10);
-            scene.add(line);
-            trackLines.push(line);
+            line.position.set(0, 0.01, -i * 10); scene.add(line); trackLines.push(line);
         }
 
-        const polesGroup = new THREE.Group();
-        scene.add(polesGroup);
+        const polesGroup = new THREE.Group(); scene.add(polesGroup);
         const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
         let lampMat = new THREE.MeshBasicMaterial({ color: 0x81C784 });
         const poles = [];
         for (let i = 0; i < 10; i++) {
-            const poleL = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 4), poleMat);
-            poleL.position.set(-4.5, 2, -i * 20);
-            const lampL = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), lampMat);
-            lampL.position.set(-4.5, 4, -i * 20);
-            const poleR = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 4), poleMat);
-            poleR.position.set(4.5, 2, -i * 20);
-            const lampR = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), lampMat);
-            lampR.position.set(4.5, 4, -i * 20);
-
-            polesGroup.add(poleL); polesGroup.add(lampL);
-            polesGroup.add(poleR); polesGroup.add(lampR);
+            const poleL = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 4), poleMat); poleL.position.set(-4.5, 2, -i * 20);
+            const lampL = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), lampMat); lampL.position.set(-4.5, 4, -i * 20);
+            const poleR = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 4), poleMat); poleR.position.set(4.5, 2, -i * 20);
+            const lampR = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), lampMat); lampR.position.set(4.5, 4, -i * 20);
+            polesGroup.add(poleL); polesGroup.add(lampL); polesGroup.add(poleR); polesGroup.add(lampR);
             poles.push(poleL, lampL, poleR, lampR);
         }
 
+        /* SISTEMA DE PARTÍCULAS / CLIMA */
+        const QTD_PARTICULAS = 800;
+        const particlesGeo = new THREE.BufferGeometry();
+        const positions = new Float32Array(QTD_PARTICULAS * 3);
+
+        for (let i = 0; i < QTD_PARTICULAS * 3; i += 3) {
+            positions[i] = (Math.random() - 0.5) * 20;     // X
+            positions[i + 1] = Math.random() * 10;          // Y
+            positions[i + 2] = -Math.random() * 40;         // Z
+        }
+
+        particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const particlesMat = new THREE.PointsMaterial({
+            size: 0.08,
+            transparent: true,
+            opacity: 0.7
+        });
+
+        const particleSystem = new THREE.Points(particlesGeo, particlesMat);
+        scene.add(particleSystem);
+
+        let velocidadeClimaY = 0.1;
+        let velocidadeClimaZ = 0.05;
+
+        /* CENÁRIOS COM EFEITOS DE CLIMA */
         const temasCenarios = [
-            { nome: "🌃 Cyber Neon", bg: 0x060411, road: 0x090814, line: 0x00ffff, light: 0xff00ff, fog: 0.02 },
-            { nome: "🌅 Pôr do Sol", bg: 0x2b1108, road: 0x1c1716, line: 0xffaa00, light: 0xff4500, fog: 0.015 },
-            { nome: "🌲 Floresta", bg: 0x03120e, road: 0x0f1715, line: 0x4CAF50, light: 0x81C784, fog: 0.025 },
-            { nome: "🌌 Galáxia", bg: 0x0a0a16, road: 0x141424, line: 0x3f51b5, light: 0x00bcd4, fog: 0.018 },
-            { nome: "🏙️ Túnel Urbano", bg: 0x111111, road: 0x222222, line: 0xffeb3b, light: 0xffffff, fog: 0.012 }
+            { nome: "🌃 Cyber Chuva Neon", bg: 0x060411, road: 0x090814, line: 0x00ffff, light: 0xff00ff, fog: 0.02, pColor: 0x00ffff, pSize: 0.06, vY: -0.25, vZ: 0.0 },
+            { nome: "🌅 Pôr do Sol Ventoso", bg: 0x2b1108, road: 0x1c1716, line: 0xffaa00, light: 0xff4500, fog: 0.015, pColor: 0xffaa00, pSize: 0.05, vY: -0.02, vZ: 0.15 },
+            { nome: "🌲 Neblina da Floresta", bg: 0x03120e, road: 0x0f1715, line: 0x4CAF50, light: 0x81C784, fog: 0.03, pColor: 0x81C784, pSize: 0.09, vY: -0.01, vZ: 0.02 },
+            { nome: "🌌 Poeira Galáctica", bg: 0x0a0a16, road: 0x141424, line: 0x3f51b5, light: 0x00bcd4, fog: 0.018, pColor: 0xe91e63, pSize: 0.07, vY: 0.01, vZ: 0.08 },
+            { nome: "🏙️ Tempestade Urbana", bg: 0x0a0a0a, road: 0x1a1a1a, line: 0xffeb3b, light: 0xffffff, fog: 0.025, pColor: 0xffffff, pSize: 0.04, vY: -0.35, vZ: -0.05 }
         ];
 
         function gerarCenarioAleatorio() {
@@ -248,11 +238,19 @@
             headlight.color.setHex(tema.light);
             lampMat.color.setHex(tema.light);
             display.material.color.setHex(tema.line);
+
+            // Ajusta Partículas de acordo com o clima
+            particlesMat.color.setHex(tema.pColor);
+            particlesMat.size = tema.pSize;
+            velocidadeClimaY = tema.vY;
+            velocidadeClimaZ = tema.vZ;
+
             document.getElementById('nomeCenario').textContent = `🎮 ${tema.nome}`;
         }
 
         gerarCenarioAleatorio();
 
+        /* CONTROLE DE INTERFACE */
         const botoesTempo = document.querySelectorAll('.botao-tempo');
         const tempoEl = document.getElementById('tempo');
         const btnIniciar = document.getElementById('btnIniciar');
@@ -304,12 +302,10 @@
                 elRpm.textContent = Math.round(75 + Math.sin(tempoRestante / 3) * 5);
                 atualizaTela();
                 
-                // CONTAGEM REGRESSIVA DOS ÚLTIMOS 3 SEGUNDOS
                 if (tempoRestante >= 1 && tempoRestante <= 3) {
                     tocarSomBipRegressivo();
                 }
 
-                // QUANDO O TEMPO ACABAR
                 if (tempoRestante <= 0) {
                     clearInterval(cronometro);
                     treinoAtivo = false;
@@ -351,9 +347,28 @@
             else document.exitFullscreen();
         });
 
+        /* LOOP DE ANIMAÇÃO 3D E CLIMA */
         let step = 0;
         function animate() {
             requestAnimationFrame(animate);
+
+            // Animação das partículas de clima (sempre visíveis ou aceleradas durante o treino)
+            const posAttr = particlesGeo.attributes.position;
+            const factorVelocidade = treinoAtivo ? 1.5 : 0.5;
+
+            for (let i = 0; i < QTD_PARTICULAS; i++) {
+                // Atualiza Y (caindo/subindo)
+                posAttr.array[i * 3 + 1] += velocidadeClimaY * factorVelocidade;
+                // Atualiza Z (movendo para frente/trás)
+                posAttr.array[i * 3 + 2] += velocidadeClimaZ * factorVelocidade;
+
+                // Reset das partículas quando saem dos limites
+                if (posAttr.array[i * 3 + 1] < 0) posAttr.array[i * 3 + 1] = 10;
+                if (posAttr.array[i * 3 + 1] > 10) posAttr.array[i * 3 + 1] = 0;
+                if (posAttr.array[i * 3 + 2] > 5) posAttr.array[i * 3 + 2] = -40;
+                if (posAttr.array[i * 3 + 2] < -40) posAttr.array[i * 3 + 2] = 5;
+            }
+            posAttr.needsUpdate = true;
 
             if (treinoAtivo) {
                 step += 0.05;
