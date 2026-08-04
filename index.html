@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — HIIT com Guidão e Cadência dos Pés</title>
+    <title>Treino 3D — HIIT com Troca Automática a Cada 30s</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
@@ -17,7 +17,6 @@
             font-size:0.65rem; color:#81C784; z-index:2; pointer-events:none;
         }
 
-        /* SETAS INDICADORAS DOS PÉS (GARANTIDAS NO TOPO DA CAMADA) */
         .painel-seta {
             position: fixed; top: 50%; transform: translateY(-50%);
             width: 75px; height: 120px; background: rgba(0, 0, 0, 0.85);
@@ -33,7 +32,6 @@
         .seta-icone { font-size: 2.5rem; transition: transform 0.15s ease, color 0.15s ease; line-height: 1; }
         .seta-status { font-size: 0.65rem; font-weight: bold; margin-top: 4px; }
 
-        /* ESTADO: PÉ EM CIMA */
         .painel-seta.ativo-cima {
             border-color: #2196F3;
             box-shadow: 0 0 18px rgba(33, 150, 243, 0.8);
@@ -42,14 +40,12 @@
         .painel-seta.ativo-cima .seta-icone { color: #2196F3; transform: translateY(-5px); }
         .painel-seta.ativo-cima .seta-status { color: #2196F3; }
 
-        /* ESTADO: PÉ EM BAIXO */
         .painel-seta.ativo-baixo {
             border-color: #444; opacity: 0.5;
         }
         .painel-seta.ativo-baixo .seta-icone { color: #666; transform: translateY(5px); }
         .painel-seta.ativo-baixo .seta-status { color: #777; }
 
-        /* HUD DO TREINADOR */
         .hud-treinador {
             position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
             width: 85%; max-width: 480px; background: rgba(0, 0, 0, 0.85);
@@ -110,24 +106,21 @@
 <body>
 
     <div id="canvas-container">
-        <div class="tag-cenario">⚡ Ritmo HIIT 3D</div>
+        <div class="tag-cenario">⚡ Ritmo HIIT 3D — Troca a cada 30s</div>
     </div>
 
-    <!-- SETA ESQUERDA (PÉ ESQUERDO) -->
     <div class="painel-seta esquerda" id="setaEsqBox">
         <div class="seta-rotulo">PÉ ESQ</div>
         <div class="seta-icone" id="setaEsqIcone">⬆</div>
         <div class="seta-status" id="setaEsqStatus">CIMA</div>
     </div>
 
-    <!-- SETA DIREITA (PÉ DIREITO) -->
     <div class="painel-seta direita" id="setaDirBox">
         <div class="seta-rotulo">PÉ DIR</div>
         <div class="seta-icone" id="setaDirIcone">⬇</div>
         <div class="seta-status" id="setaDirStatus">BAIXO</div>
     </div>
 
-    <!-- HUD DO TREINADOR -->
     <div class="hud-treinador" id="hudTreinador">
         <div class="treinador-avatar">🚴‍♂️</div>
         <div class="treinador-info">
@@ -167,13 +160,12 @@
     </div>
 
     <script>
+        /* CICLO COM TROCA EXATA A CADA 30 SEGUNDOS */
         const cicloHIIT = [
-            { zona: 'z1', duracao: 60, fala: "Aquecimento Z1. Siga o ritmo das setas nas laterais!" },
-            { zona: 'z4', duracao: 30, fala: "TIRO Z4! Acompanhe as setas acelerando!" },
-            { zona: 'z2', duracao: 60, fala: "Recuperação Z2. Mantenha o fluxo constante." },
-            { zona: 'z3', duracao: 30, fala: "ACELERA! Siga a alternância dos pés!" },
-            { zona: 'z1', duracao: 60, fala: "Respire fundo e recupere energia." },
-            { zona: 'z4', duracao: 30, fala: "SPRINT FINAL! Força total acompanhando o ritmo!" }
+            { zona: 'z1', duracao: 30, fala: "Aquecimento Z1 por 30 segundos. Mantenha o ritmo!" },
+            { zona: 'z2', duracao: 30, fala: "Z2 Recuperação ativa. Fluxo constante!" },
+            { zona: 'z3', duracao: 30, fala: "Z3 Limiar! Acelere a cadência!" },
+            { zona: 'z4', duracao: 30, fala: "Z4 SPRINT! Força total por 30 segundos!" }
         ];
 
         const zonas = {
