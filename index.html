@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — Gotas de Chuva</title>
+    <title>Treino 3D — Zonas de Intensidade</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
@@ -19,32 +19,43 @@
 
         .painel-controle { 
             position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
-            width:90%; max-width:400px; background:rgba(10, 10, 12, 0.7); 
-            border-radius:10px; padding:6px 10px; border:1px solid rgba(76,175,80,0.3); 
-            z-index:2; backdrop-filter:blur(4px); display:flex; flex-direction:column; gap:4px;
+            width:90%; max-width:420px; background:rgba(10, 10, 12, 0.75); 
+            border-radius:12px; padding:8px 12px; border:2px solid #81C784; 
+            z-index:2; backdrop-filter:blur(6px); display:flex; flex-direction:column; gap:6px;
+            transition: border-color 0.5s ease;
         }
 
-        .opcoes-tempo { display:flex; gap:3px; overflow-x:auto; padding-bottom:2px; }
-        .opcoes-tempo::-webkit-scrollbar { display:none; }
+        .secao-label { font-size:0.55rem; color:#aaa; text-transform:uppercase; letter-spacing:1px; margin-bottom:2px; }
 
-        .botao-tempo { 
-            padding:2px 6px; font-size:0.65rem; font-weight:bold; 
+        .opcoes-tempo, .opcoes-zona { display:flex; gap:3px; overflow-x:auto; padding-bottom:2px; }
+        .opcoes-tempo::-webkit-scrollbar, .opcoes-zona::-webkit-scrollbar { display:none; }
+
+        .botao-tempo, .botao-zona { 
+            padding:3px 8px; font-size:0.65rem; font-weight:bold; 
             border:1px solid #333; border-radius:4px; background:rgba(0,0,0,0.6); 
-            color:#ccc; cursor:pointer; white-space:nowrap;
+            color:#ccc; cursor:pointer; white-space:nowrap; transition:all 0.3s;
         }
-        .botao-tempo.selecionado { border-color:#4CAF50; background:rgba(76,175,80,0.3); color:#81C784; }
+        
+        /* Estilos das Zonas */
+        .botao-zona[data-zona="z1"] { border-color:#2196F3; }
+        .botao-zona[data-zona="z2"] { border-color:#4CAF50; }
+        .botao-zona[data-zona="z3"] { border-color:#FF9800; }
+        .botao-zona[data-zona="z4"] { border-color:#F44336; }
 
-        .dados-treino { display:flex; justify-content:space-between; text-align:center; background:rgba(0,0,0,0.3); padding:3px 6px; border-radius:4px; }
+        .botao-tempo.selecionado { border-color:#fff; background:rgba(255,255,255,0.2); color:#fff; }
+        .botao-zona.selecionado { color:#fff; font-weight:900; box-shadow:0 0 8px currentColor; }
+
+        .dados-treino { display:flex; justify-content:space-between; text-align:center; background:rgba(0,0,0,0.4); padding:4px 6px; border-radius:6px; }
         .dado { flex:1; }
-        .dado span { font-size:0.75rem; font-weight:bold; color:#81C784; font-family:monospace; }
+        .dado span { font-size:0.8rem; font-weight:bold; color:#81C784; font-family:monospace; transition:color 0.5s; }
         .dado label { font-size:0.55rem; color:#888; display:block; }
 
-        .tempo-restante { font-size:0.95rem; font-weight:bold; color:#4CAF50; font-family:monospace; text-align:center; }
-        .barra-progresso { width:100%; height:3px; background:#222; border-radius:2px; overflow:hidden; }
-        .progresso { height:100%; background:#4CAF50; width:0%; transition:width 0.3s; }
+        .tempo-restante { font-size:1.1rem; font-weight:bold; color:#4CAF50; font-family:monospace; text-align:center; transition:color 0.5s; }
+        .barra-progresso { width:100%; height:4px; background:#222; border-radius:2px; overflow:hidden; }
+        .progresso { height:100%; background:#4CAF50; width:0%; transition:width 0.3s, background-color 0.5s; }
 
         .botoes-acao { display:flex; gap:4px; justify-content:center; }
-        .btn { padding:3px 8px; font-size:0.65rem; font-weight:bold; border:none; border-radius:4px; cursor:pointer; }
+        .btn { padding:4px 10px; font-size:0.65rem; font-weight:bold; border:none; border-radius:4px; cursor:pointer; }
         .btn.iniciar { background:#4CAF50; color:white; }
         .btn.parar { background:#f44336; color:white; }
         .btn.reiniciar { background:#ff9800; color:white; }
@@ -58,23 +69,30 @@
         <div class="tag-cenario" id="nomeCenario">🌧️ Cyber Chuva Neon</div>
     </div>
 
-    <div class="painel-controle">
+    <div class="painel-controle" id="painelControle">
+        <div class="secao-label">Duração:</div>
         <div class="opcoes-tempo">
             <button class="botao-tempo" data-segundos="300">5m</button>
             <button class="botao-tempo" data-segundos="600">10m</button>
             <button class="botao-tempo" data-segundos="900">15m</button>
             <button class="botao-tempo" data-segundos="1200">20m</button>
-            <button class="botao-tempo" data-segundos="1500">25m</button>
             <button class="botao-tempo" data-segundos="1800">30m</button>
-            <button class="botao-tempo" data-segundos="2700">45m</button>
             <button class="botao-tempo" data-segundos="3600">60m</button>
+        </div>
+
+        <div class="secao-label">Zona de Esforço:</div>
+        <div class="opcoes-zona">
+            <button class="botao-zona selecionado" data-zona="z1" data-vel="18" data-rpm="65" data-cor="#2196F3">Z1 Recuperação</button>
+            <button class="botao-zona" data-zona="z2" data-vel="25" data-rpm="80" data-cor="#4CAF50">Z2 Moderado</button>
+            <button class="botao-zona" data-zona="z3" data-vel="32" data-rpm="95" data-cor="#FF9800">Z3 Limiar</button>
+            <button class="botao-zona" data-zona="z4" data-vel="42" data-rpm="115" data-cor="#F44336">Z4 Sprint / Tiro</button>
         </div>
 
         <div class="dados-treino">
             <div class="dado"><span id="cal">0</span><label>Kcal</label></div>
             <div class="dado"><span id="km">0.00</span><label>Km</label></div>
-            <div class="dado"><span id="vel">22.5</span><label>Km/h</label></div>
-            <div class="dado"><span id="rpm">75</span><label>RPM</label></div>
+            <div class="dado"><span id="vel">18.0</span><label>Km/h</label></div>
+            <div class="dado"><span id="rpm">65</span><label>RPM</label></div>
         </div>
 
         <div class="tempo-restante" id="tempo">00:00:00</div>
@@ -89,7 +107,7 @@
     </div>
 
     <script>
-        /* ÁUDIO SINTETIZADO */
+        /* SINTETIZADOR DE ÁUDIO */
         let audioCtx = null;
         function getAudioContext() {
             if (!audioCtx) {
@@ -102,10 +120,8 @@
         function tocarSomBipRegressivo() {
             const ctx = getAudioContext();
             if (!ctx) return;
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(440, ctx.currentTime);
+            const osc = ctx.createOscillator(); const gain = ctx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(440, ctx.currentTime);
             gain.gain.setValueAtTime(0.2, ctx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
             osc.connect(gain); gain.connect(ctx.destination);
@@ -130,7 +146,7 @@
             osc2.start(ctx.currentTime + 0.35); osc2.stop(ctx.currentTime + 0.9);
         }
 
-        /* THREE.JS */
+        /* THREE.JS SETUP */
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -167,7 +183,9 @@
         const gripR = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.15), matGrip);
         gripR.rotation.z = Math.PI / 2; gripR.position.set(-0.3, 0.95, -0.5); povGroup.add(gripR);
 
-        const display = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), new THREE.MeshBasicMaterial({ color: 0x4CAF50 }));
+        /* DISPLAY NO GUIDÃO (Muda de cor com a Zona) */
+        const displayMat = new THREE.MeshBasicMaterial({ color: 0x2196F3 });
+        const display = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), displayMat);
         display.position.set(0, 1.0, -0.48); display.rotation.x = -Math.PI / 6; povGroup.add(display);
 
         /* PISTA E POSTES */
@@ -195,48 +213,39 @@
             poles.push(poleL, lampL, poleR, lampR);
         }
 
-        /* SISTEMA DE GOTAS (LINHAS ESTICADAS DE CHUVA) */
+        /* CHUVA 3D */
         const QTD_GOTAS = 400;
         const rainGeo = new THREE.BufferGeometry();
-        const rainPositions = new Float32Array(QTD_GOTAS * 6); // 2 pontos por linha (início e fim)
-        const COMPRIMENTO_GOTA = 0.4; // Tamanho do traço da gota
+        const rainPositions = new Float32Array(QTD_GOTAS * 6);
+        const COMPRIMENTO_GOTA = 0.4;
 
         for (let i = 0; i < QTD_GOTAS; i++) {
             const x = (Math.random() - 0.5) * 16;
             const y = Math.random() * 8;
             const z = -Math.random() * 30;
 
-            // Ponto Superior da gota
             rainPositions[i * 6] = x;
             rainPositions[i * 6 + 1] = y;
             rainPositions[i * 6 + 2] = z;
 
-            // Ponto Inferior da gota (esticado para baixo)
             rainPositions[i * 6 + 3] = x;
             rainPositions[i * 6 + 4] = y - COMPRIMENTO_GOTA;
             rainPositions[i * 6 + 5] = z;
         }
 
         rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));
-
-        const rainMat = new THREE.LineBasicMaterial({
-            color: 0x00ffff,
-            transparent: true,
-            opacity: 0.65
-        });
-
+        const rainMat = new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.65 });
         const rainSystem = new THREE.LineSegments(rainGeo, rainMat);
         scene.add(rainSystem);
 
-        let velocidadeChuvaY = -0.08; // Queda suave da chuva
+        let velocidadeChuvaY = -0.08;
 
         /* CENÁRIOS */
         const temasCenarios = [
             { nome: "🌧️ Cyber Chuva Neon", bg: 0x060411, road: 0x090814, line: 0x00ffff, light: 0xff00ff, fog: 0.02, pColor: 0x00ffff, vY: -0.08 },
             { nome: "🌅 Chuva de Verão", bg: 0x2b1108, road: 0x1c1716, line: 0xffaa00, light: 0xff4500, fog: 0.015, pColor: 0xffaa00, vY: -0.06 },
             { nome: "🌲 Garoa da Floresta", bg: 0x03120e, road: 0x0f1715, line: 0x4CAF50, light: 0x81C784, fog: 0.025, pColor: 0x81C784, vY: -0.04 },
-            { nome: "🌌 Tempestade Cósmica", bg: 0x0a0a16, road: 0x141424, line: 0x3f51b5, light: 0x00bcd4, fog: 0.018, pColor: 0xff00ff, vY: -0.07 },
-            { nome: "🌨️ Tempestade Noturna", bg: 0x0f1520, road: 0x1a2230, line: 0x90caf9, light: 0xe3f2fd, fog: 0.025, pColor: 0xffffff, vY: -0.09 }
+            { nome: "🌌 Tempestade Cósmica", bg: 0x0a0a16, road: 0x141424, line: 0x3f51b5, light: 0x00bcd4, fog: 0.018, pColor: 0xff00ff, vY: -0.07 }
         ];
 
         function gerarCenarioAleatorio() {
@@ -247,18 +256,17 @@
             lineMat.color.setHex(tema.line);
             headlight.color.setHex(tema.light);
             lampMat.color.setHex(tema.light);
-            display.material.color.setHex(tema.line);
-
             rainMat.color.setHex(tema.pColor);
             velocidadeChuvaY = tema.vY;
-
             document.getElementById('nomeCenario').textContent = `🎮 ${tema.nome}`;
         }
 
         gerarCenarioAleatorio();
 
-        /* CONTROLES DA INTERFACE */
+        /* VARIÁVEIS DO TREINO E ZONAS */
         const botoesTempo = document.querySelectorAll('.botao-tempo');
+        const botoesZona = document.querySelectorAll('.botao-zona');
+        const painelControle = document.getElementById('painelControle');
         const tempoEl = document.getElementById('tempo');
         const btnIniciar = document.getElementById('btnIniciar');
         const btnParar = document.getElementById('btnParar');
@@ -267,10 +275,45 @@
         const barra = document.getElementById('barra');
         const elCal = document.getElementById('cal');
         const elKm = document.getElementById('km');
+        const elVel = document.getElementById('vel');
         const elRpm = document.getElementById('rpm');
 
         let tempoTotal = 0, tempoRestante = 0, cronometro = null, treinoAtivo = false;
-        let calorias = 0, distancia = 0, vel = 22.5;
+        let calorias = 0, distancia = 0;
+        
+        // Dados da Zona Atual
+        let velAlvo = 18.0;
+        let rpmAlvo = 65;
+        let corZonaAtual = "#2196F3";
+        let fatorAvancoPista = 0.3;
+
+        /* SELEÇÃO DE ZONA DE INTENSIDADE */
+        botoesZona.forEach(btn => {
+            btn.addEventListener('click', () => {
+                botoesZona.forEach(b => b.classList.remove('selecionado'));
+                btn.classList.add('selecionado');
+                
+                velAlvo = parseFloat(btn.dataset.vel);
+                rpmAlvo = parseInt(btn.dataset.rpm);
+                corZonaAtual = btn.dataset.cor;
+                
+                // Atualiza velocidade visual da pista conforme a zona
+                fatorAvancoPista = velAlvo / 60;
+
+                aplicarCorZona(corZonaAtual);
+            });
+        });
+
+        function aplicarCorZona(hexCor) {
+            painelControle.style.borderColor = hexCor;
+            tempoEl.style.color = hexCor;
+            barra.style.backgroundColor = hexCor;
+            
+            document.querySelectorAll('.dado span').forEach(el => el.style.color = hexCor);
+            
+            // Altera a cor da tela digital no guidão 3D
+            displayMat.color.set(hexCor);
+        }
 
         botoesTempo.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -296,17 +339,23 @@
             barra.style.width = `${tempoTotal > 0 ? ((tempoTotal - tempoRestante) / tempoTotal) * 100 : 0}%`;
             elCal.textContent = Math.round(calorias);
             elKm.textContent = distancia.toFixed(2);
+            elVel.textContent = velAlvo.toFixed(1);
         }
 
         btnIniciar.addEventListener('click', () => {
             if(tempoRestante <= 0) return;
             treinoAtivo = true;
             if(cronometro) clearInterval(cronometro);
+            
             cronometro = setInterval(() => {
                 tempoRestante--;
-                calorias += 9/60;
-                distancia += vel / 3600;
-                elRpm.textContent = Math.round(75 + Math.sin(tempoRestante / 3) * 5);
+                // Queima de calorias proporcional à intensidade da zona
+                const multiplicadorCal = velAlvo / 15;
+                calorias += (9 * multiplicadorCal) / 60;
+                distancia += velAlvo / 3600;
+
+                // Pequena variação orgânica no RPM
+                elRpm.textContent = Math.round(rpmAlvo + Math.sin(tempoRestante / 2) * 4);
                 atualizaTela();
                 
                 if (tempoRestante >= 1 && tempoRestante <= 3) {
@@ -320,6 +369,7 @@
                     btnIniciar.disabled = btnParar.disabled = true;
                 }
             }, 1000);
+            
             btnIniciar.disabled = true;
             btnParar.disabled = false;
             btnReiniciar.disabled = false;
@@ -354,20 +404,17 @@
             else document.exitFullscreen();
         });
 
-        /* LOOP ANIMATE (GOTAS MOVENTES) */
+        /* LOOP ANIMATE */
         let step = 0;
         function animate() {
             requestAnimationFrame(animate);
 
-            // Atualiza as posições das GOTAS DE CHUVA
+            // Mover Chuva
             const posAttr = rainGeo.attributes.position;
-
             for (let i = 0; i < QTD_GOTAS; i++) {
-                // Move o ponto inicial e final da gota para baixo
                 posAttr.array[i * 6 + 1] += velocidadeChuvaY;
                 posAttr.array[i * 6 + 4] += velocidadeChuvaY;
 
-                // Quando a gota chega perto do chão, faz ela recomeçar no topo
                 if (posAttr.array[i * 6 + 1] < 0) {
                     const novoY = 7 + Math.random() * 2;
                     posAttr.array[i * 6 + 1] = novoY;
@@ -377,8 +424,11 @@
             posAttr.needsUpdate = true;
 
             if (treinoAtivo) {
-                step += 0.05;
-                const speed = 0.4;
+                // A vibração do guidão e a velocidade da pista aceleram nas zonas mais altas!
+                const frequenciaVibracao = rpmAlvo / 35;
+                step += 0.04 * frequenciaVibracao;
+                
+                const speed = fatorAvancoPista;
 
                 trackLines.forEach(line => {
                     line.position.z += speed;
