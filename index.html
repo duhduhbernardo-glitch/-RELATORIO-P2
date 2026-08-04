@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — Mini Painel</title>
+    <title>Treino 3D — Com Alerta Sonoro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
@@ -91,6 +91,37 @@
     </div>
 
     <script>
+        /* FUNÇÃO PARA TOCAR SOM DE TEMPO FINALIZADO (Sintetizador Web Audio API) */
+        function tocarSomFimTreino() {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+
+            // Primeiro Beep
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // Nota D5
+            gain1.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.start(ctx.currentTime);
+            osc1.stop(ctx.currentTime + 0.3);
+
+            // Segundo Beep (Mais agudo e longo)
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(880, ctx.currentTime + 0.35); // Nota A5
+            gain2.gain.setValueAtTime(0.4, ctx.currentTime + 0.35);
+            gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.9);
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.start(ctx.currentTime + 0.35);
+            osc2.stop(ctx.currentTime + 0.9);
+        }
+
         const container = document.getElementById('canvas-container');
         
         const scene = new THREE.Scene();
@@ -249,9 +280,12 @@
                 distancia += vel / 3600;
                 elRpm.textContent = Math.round(75 + Math.sin(tempoRestante / 3) * 5);
                 atualizaTela();
+                
+                // QUANDO O TEMPO ACABAR
                 if (tempoRestante <= 0) {
                     clearInterval(cronometro);
                     treinoAtivo = false;
+                    tocarSomFimTreino(); // Toca o alerta sonoro duplo
                     btnIniciar.disabled = btnParar.disabled = true;
                 }
             }, 1000);
