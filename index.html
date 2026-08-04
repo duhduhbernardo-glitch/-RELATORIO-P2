@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — Efeitos de Clima</title>
+    <title>Treino 3D — Gotas de Chuva</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
@@ -13,13 +13,13 @@
 
         .tag-cenario { 
             position:absolute; top:8px; left:8px; 
-            background:rgba(0,0,0,0.5); padding:4px 8px; border-radius:10px; 
+            background:rgba(0,0,0,0.6); padding:4px 8px; border-radius:10px; 
             font-size:0.65rem; color:#81C784; z-index:2; pointer-events:none;
         }
 
         .painel-controle { 
             position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
-            width:90%; max-width:400px; background:rgba(10, 10, 12, 0.65); 
+            width:90%; max-width:400px; background:rgba(10, 10, 12, 0.7); 
             border-radius:10px; padding:6px 10px; border:1px solid rgba(76,175,80,0.3); 
             z-index:2; backdrop-filter:blur(4px); display:flex; flex-direction:column; gap:4px;
         }
@@ -55,7 +55,7 @@
 <body>
 
     <div id="canvas-container">
-        <div class="tag-cenario" id="nomeCenario">🌲 Cyber Neon</div>
+        <div class="tag-cenario" id="nomeCenario">🌧️ Cyber Chuva Neon</div>
     </div>
 
     <div class="painel-controle">
@@ -130,7 +130,7 @@
             osc2.start(ctx.currentTime + 0.35); osc2.stop(ctx.currentTime + 0.9);
         }
 
-        /* CONFIGURAÇÃO THREE.JS */
+        /* THREE.JS */
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -141,14 +141,13 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
 
         const headlight = new THREE.SpotLight(0xffffff, 3, 45, Math.PI / 4, 0.5);
         headlight.position.set(0, 1.0, -0.2);
         headlight.target.position.set(0, 0, -20);
-        scene.add(headlight);
-        scene.add(headlight.target);
+        scene.add(headlight); scene.add(headlight.target);
 
         /* POV GUIDÃO */
         const povGroup = new THREE.Group();
@@ -196,37 +195,48 @@
             poles.push(poleL, lampL, poleR, lampR);
         }
 
-        /* SISTEMA DE PARTÍCULAS / CLIMA */
-        const QTD_PARTICULAS = 800;
-        const particlesGeo = new THREE.BufferGeometry();
-        const positions = new Float32Array(QTD_PARTICULAS * 3);
+        /* SISTEMA DE GOTAS (LINHAS ESTICADAS DE CHUVA) */
+        const QTD_GOTAS = 400;
+        const rainGeo = new THREE.BufferGeometry();
+        const rainPositions = new Float32Array(QTD_GOTAS * 6); // 2 pontos por linha (início e fim)
+        const COMPRIMENTO_GOTA = 0.4; // Tamanho do traço da gota
 
-        for (let i = 0; i < QTD_PARTICULAS * 3; i += 3) {
-            positions[i] = (Math.random() - 0.5) * 20;     // X
-            positions[i + 1] = Math.random() * 10;          // Y
-            positions[i + 2] = -Math.random() * 40;         // Z
+        for (let i = 0; i < QTD_GOTAS; i++) {
+            const x = (Math.random() - 0.5) * 16;
+            const y = Math.random() * 8;
+            const z = -Math.random() * 30;
+
+            // Ponto Superior da gota
+            rainPositions[i * 6] = x;
+            rainPositions[i * 6 + 1] = y;
+            rainPositions[i * 6 + 2] = z;
+
+            // Ponto Inferior da gota (esticado para baixo)
+            rainPositions[i * 6 + 3] = x;
+            rainPositions[i * 6 + 4] = y - COMPRIMENTO_GOTA;
+            rainPositions[i * 6 + 5] = z;
         }
 
-        particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const particlesMat = new THREE.PointsMaterial({
-            size: 0.08,
+        rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));
+
+        const rainMat = new THREE.LineBasicMaterial({
+            color: 0x00ffff,
             transparent: true,
-            opacity: 0.7
+            opacity: 0.65
         });
 
-        const particleSystem = new THREE.Points(particlesGeo, particlesMat);
-        scene.add(particleSystem);
+        const rainSystem = new THREE.LineSegments(rainGeo, rainMat);
+        scene.add(rainSystem);
 
-        let velocidadeClimaY = 0.1;
-        let velocidadeClimaZ = 0.05;
+        let velocidadeChuvaY = -0.08; // Queda suave da chuva
 
-        /* CENÁRIOS COM EFEITOS DE CLIMA */
+        /* CENÁRIOS */
         const temasCenarios = [
-            { nome: "🌃 Cyber Chuva Neon", bg: 0x060411, road: 0x090814, line: 0x00ffff, light: 0xff00ff, fog: 0.02, pColor: 0x00ffff, pSize: 0.06, vY: -0.25, vZ: 0.0 },
-            { nome: "🌅 Pôr do Sol Ventoso", bg: 0x2b1108, road: 0x1c1716, line: 0xffaa00, light: 0xff4500, fog: 0.015, pColor: 0xffaa00, pSize: 0.05, vY: -0.02, vZ: 0.15 },
-            { nome: "🌲 Neblina da Floresta", bg: 0x03120e, road: 0x0f1715, line: 0x4CAF50, light: 0x81C784, fog: 0.03, pColor: 0x81C784, pSize: 0.09, vY: -0.01, vZ: 0.02 },
-            { nome: "🌌 Poeira Galáctica", bg: 0x0a0a16, road: 0x141424, line: 0x3f51b5, light: 0x00bcd4, fog: 0.018, pColor: 0xe91e63, pSize: 0.07, vY: 0.01, vZ: 0.08 },
-            { nome: "🏙️ Tempestade Urbana", bg: 0x0a0a0a, road: 0x1a1a1a, line: 0xffeb3b, light: 0xffffff, fog: 0.025, pColor: 0xffffff, pSize: 0.04, vY: -0.35, vZ: -0.05 }
+            { nome: "🌧️ Cyber Chuva Neon", bg: 0x060411, road: 0x090814, line: 0x00ffff, light: 0xff00ff, fog: 0.02, pColor: 0x00ffff, vY: -0.08 },
+            { nome: "🌅 Chuva de Verão", bg: 0x2b1108, road: 0x1c1716, line: 0xffaa00, light: 0xff4500, fog: 0.015, pColor: 0xffaa00, vY: -0.06 },
+            { nome: "🌲 Garoa da Floresta", bg: 0x03120e, road: 0x0f1715, line: 0x4CAF50, light: 0x81C784, fog: 0.025, pColor: 0x81C784, vY: -0.04 },
+            { nome: "🌌 Tempestade Cósmica", bg: 0x0a0a16, road: 0x141424, line: 0x3f51b5, light: 0x00bcd4, fog: 0.018, pColor: 0xff00ff, vY: -0.07 },
+            { nome: "🌨️ Tempestade Noturna", bg: 0x0f1520, road: 0x1a2230, line: 0x90caf9, light: 0xe3f2fd, fog: 0.025, pColor: 0xffffff, vY: -0.09 }
         ];
 
         function gerarCenarioAleatorio() {
@@ -239,18 +249,15 @@
             lampMat.color.setHex(tema.light);
             display.material.color.setHex(tema.line);
 
-            // Ajusta Partículas de acordo com o clima
-            particlesMat.color.setHex(tema.pColor);
-            particlesMat.size = tema.pSize;
-            velocidadeClimaY = tema.vY;
-            velocidadeClimaZ = tema.vZ;
+            rainMat.color.setHex(tema.pColor);
+            velocidadeChuvaY = tema.vY;
 
             document.getElementById('nomeCenario').textContent = `🎮 ${tema.nome}`;
         }
 
         gerarCenarioAleatorio();
 
-        /* CONTROLE DE INTERFACE */
+        /* CONTROLES DA INTERFACE */
         const botoesTempo = document.querySelectorAll('.botao-tempo');
         const tempoEl = document.getElementById('tempo');
         const btnIniciar = document.getElementById('btnIniciar');
@@ -347,26 +354,25 @@
             else document.exitFullscreen();
         });
 
-        /* LOOP DE ANIMAÇÃO 3D E CLIMA */
+        /* LOOP ANIMATE (GOTAS MOVENTES) */
         let step = 0;
         function animate() {
             requestAnimationFrame(animate);
 
-            // Animação das partículas de clima (sempre visíveis ou aceleradas durante o treino)
-            const posAttr = particlesGeo.attributes.position;
-            const factorVelocidade = treinoAtivo ? 1.5 : 0.5;
+            // Atualiza as posições das GOTAS DE CHUVA
+            const posAttr = rainGeo.attributes.position;
 
-            for (let i = 0; i < QTD_PARTICULAS; i++) {
-                // Atualiza Y (caindo/subindo)
-                posAttr.array[i * 3 + 1] += velocidadeClimaY * factorVelocidade;
-                // Atualiza Z (movendo para frente/trás)
-                posAttr.array[i * 3 + 2] += velocidadeClimaZ * factorVelocidade;
+            for (let i = 0; i < QTD_GOTAS; i++) {
+                // Move o ponto inicial e final da gota para baixo
+                posAttr.array[i * 6 + 1] += velocidadeChuvaY;
+                posAttr.array[i * 6 + 4] += velocidadeChuvaY;
 
-                // Reset das partículas quando saem dos limites
-                if (posAttr.array[i * 3 + 1] < 0) posAttr.array[i * 3 + 1] = 10;
-                if (posAttr.array[i * 3 + 1] > 10) posAttr.array[i * 3 + 1] = 0;
-                if (posAttr.array[i * 3 + 2] > 5) posAttr.array[i * 3 + 2] = -40;
-                if (posAttr.array[i * 3 + 2] < -40) posAttr.array[i * 3 + 2] = 5;
+                // Quando a gota chega perto do chão, faz ela recomeçar no topo
+                if (posAttr.array[i * 6 + 1] < 0) {
+                    const novoY = 7 + Math.random() * 2;
+                    posAttr.array[i * 6 + 1] = novoY;
+                    posAttr.array[i * 6 + 4] = novoY - COMPRIMENTO_GOTA;
+                }
             }
             posAttr.needsUpdate = true;
 
