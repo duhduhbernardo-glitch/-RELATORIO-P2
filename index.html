@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — HIIT com Indicador de Pedalada</title>
+    <title>Treino 3D — HIIT com Guiador e Cadência dos Pés</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
@@ -17,31 +17,37 @@
             font-size:0.65rem; color:#81C784; z-index:2; pointer-events:none;
         }
 
-        /* INDICADORES DE PEDALADA (ESQUERDA E DIREITA) */
-        .indicador-pedal {
-            position: absolute; top: 40%; transform: translateY(-50%);
+        /* SETAS INDICADORAS DOS PÉS (ESQUERDA E DIREITA) */
+        .painel-seta {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 80px; height: 130px; background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #444; border-radius: 12px; z-index: 5;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            width: 70px; height: 110px; background: rgba(0,0,0,0.75);
-            border: 2px solid #555; border-radius: 12px; z-index: 4;
-            backdrop-filter: blur(4px); transition: all 0.2s ease;
+            backdrop-filter: blur(6px); transition: all 0.15s ease-out;
         }
-        .indicador-pedal.esquerdo { left: 15px; }
-        .indicador-pedal.direito { right: 15px; }
+        .painel-seta.esquerda { left: 15px; }
+        .painel-seta.direita { right: 15px; }
 
-        .pedal-label { font-size: 0.6rem; font-weight: bold; color: #aaa; text-transform: uppercase; margin-bottom: 4px; }
-        .pedal-seta { font-size: 2.2rem; transition: transform 0.15s ease, color 0.15s ease; }
-        .pedal-status { font-size: 0.65rem; font-weight: bold; margin-top: 2px; }
+        .seta-rotulo { font-size: 0.65rem; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 4px; }
+        .seta-icone { font-size: 2.8rem; transition: transform 0.15s ease, color 0.15s ease; }
+        .seta-status { font-size: 0.7rem; font-weight: bold; margin-top: 4px; }
 
-        /* ESTADOS DOS PEDAIS */
-        .pedal-em-cima { border-color: #2196F3; box-shadow: 0 0 12px rgba(33, 150, 243, 0.6); }
-        .pedal-em-cima .pedal-seta { color: #2196F3; transform: translateY(-6px); }
-        .pedal-em-cima .pedal-status { color: #2196F3; }
+        /* ESTADO: PÉ EM CIMA (Puxando/Subindo) */
+        .painel-seta.ativo-cima {
+            border-color: #2196F3;
+            box-shadow: 0 0 15px rgba(33, 150, 243, 0.7);
+        }
+        .painel-seta.ativo-cima .seta-icone { color: #2196F3; transform: translateY(-8px); }
+        .painel-seta.ativo-cima .seta-status { color: #2196F3; }
 
-        .pedal-em-baixo { border-color: #555; opacity: 0.6; }
-        .pedal-em-baixo .pedal-seta { color: #777; transform: translateY(6px); }
-        .pedal-em-baixo .pedal-status { color: #777; }
+        /* ESTADO: PÉ EM BAIXO (Empurrando/Descendo) */
+        .painel-seta.ativo-baixo {
+            border-color: #555; opacity: 0.5;
+        }
+        .painel-seta.ativo-baixo .seta-icone { color: #666; transform: translateY(8px); }
+        .painel-seta.ativo-baixo .seta-status { color: #777; }
 
-        /* HUD DO TREINADOR VIRTUAL */
+        /* HUD DO TREINADOR */
         .hud-treinador {
             position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
             width: 90%; max-width: 480px; background: rgba(0, 0, 0, 0.85);
@@ -102,28 +108,29 @@
 <body>
 
     <div id="canvas-container">
-        <div class="tag-cenario" id="nomeCenario">⚡ Cyber HIIT — Guia Visceral de Cadência de Pedais</div>
+        <div class="tag-cenario">⚡ Ritmo HIIT 3D — Setas dos Pés e Guidão Móvel</div>
     </div>
 
-    <!-- PAINÉIS DE SETAS DOS PÉS -->
-    <div class="indicador-pedal esquerdo" id="pedalEsq">
-        <div class="pedal-label">Pé Esq.</div>
-        <div class="pedal-seta" id="setaEsq">⬆</div>
-        <div class="pedal-status" id="statusEsq">SUBINDO</div>
+    <!-- SETA ESQUERDA (PÉ ESQUERDO) -->
+    <div class="painel-seta esquerda" id="setaEsqBox">
+        <div class="seta-rotulo">PÉ ESQ</div>
+        <div class="seta-icone" id="setaEsqIcone">⬆</div>
+        <div class="seta-status" id="setaEsqStatus">CIMA</div>
     </div>
 
-    <div class="indicador-pedal direito" id="pedalDir">
-        <div class="pedal-label">Pé Dir.</div>
-        <div class="pedal-seta" id="setaDir">⬇</div>
-        <div class="pedal-status" id="statusDir">DESCENDO</div>
+    <!-- SETA DIREITA (PÉ DIREITO) -->
+    <div class="painel-seta direita" id="setaDirBox">
+        <div class="seta-rotulo">PÉ DIR</div>
+        <div class="seta-icone" id="setaDirIcone">⬇</div>
+        <div class="seta-status" id="setaDirStatus">BAIXO</div>
     </div>
 
-    <!-- PAINEL DO TREINADOR -->
+    <!-- HUD DO TREINADOR -->
     <div class="hud-treinador" id="hudTreinador">
         <div class="treinador-avatar">🚴‍♂️</div>
         <div class="treinador-info">
             <div class="treinador-nome">Coach HIIT Virtual</div>
-            <div class="treinador-fala" id="falaTreinador">Siga as setas dos lados para manter o ritmo correto dos pés!</div>
+            <div class="treinador-fala" id="falaTreinador">Siga o ritmo das setas nas laterais!</div>
         </div>
     </div>
 
@@ -158,21 +165,20 @@
     </div>
 
     <script>
-        /* ESTRUTURA DO TREINO HIIT */
         const cicloHIIT = [
-            { zona: 'z1', duracao: 60, fala: "Aquecimento na Z1. Mantenha o ritmo visual dos pedais!" },
+            { zona: 'z1', duracao: 60, fala: "Aquecimento Z1. Mantenha os pés no ritmo das setas!" },
             { zona: 'z4', duracao: 30, fala: "TIRO Z4! Acompanhe as setas acelerando!" },
-            { zona: 'z2', duracao: 60, fala: "Recuperação Z2. Mantenha o fluxo suave." },
-            { zona: 'z3', duracao: 30, fala: "ACELERA! Acompanhe o balanço do guidão e as setas!" },
-            { zona: 'z1', duracao: 60, fala: "Respire fundo na Z1 e prepare-se." },
-            { zona: 'z4', duracao: 30, fala: "FORÇA TOTAL Z4! Siga o ritmo até o fim!" }
+            { zona: 'z2', duracao: 60, fala: "Recuperação Z2. Mantenha o ritmo ritmado." },
+            { zona: 'z3', duracao: 30, fala: "ACELERA! Siga a alternância dos pés!" },
+            { zona: 'z1', duracao: 60, fala: "Respire fundo e recupere energia." },
+            { zona: 'z4', duracao: 30, fala: "SPRINT FINAL! Força total acompanhando o ritmo!" }
         ];
 
         const zonas = {
-            z1: { nome: "Z1 Aquecimento / Recuperação", xPos: -3.0, vel: 18.0, rpm: 65, cor: "#2196F3", hex: 0x2196F3 },
-            z2: { nome: "Z2 Recuperação Ativa",          xPos: -1.0, vel: 25.0, rpm: 80, cor: "#4CAF50", hex: 0x4CAF50 },
-            z3: { nome: "Z3 Limiar HIIT",                xPos:  1.0, vel: 34.0, rpm: 100, cor: "#FF9800", hex: 0xFF9800 },
-            z4: { nome: "Z4 SPRINT HIIT",                xPos:  3.0, vel: 45.0, rpm: 120, cor: "#F44336", hex: 0xF44336 }
+            z1: { nome: "Z1 Aquecimento", xPos: -3.0, vel: 18.0, rpm: 65, cor: "#2196F3", hex: 0x2196F3 },
+            z2: { nome: "Z2 Recuperação Ativa", xPos: -1.0, vel: 25.0, rpm: 80, cor: "#4CAF50", hex: 0x4CAF50 },
+            z3: { nome: "Z3 Limiar HIIT", xPos:  1.0, vel: 34.0, rpm: 100, cor: "#FF9800", hex: 0xFF9800 },
+            z4: { nome: "Z4 SPRINT HIIT", xPos:  3.0, vel: 45.0, rpm: 120, cor: "#F44336", hex: 0xF44336 }
         };
 
         function falarTreinador(texto) {
@@ -229,7 +235,7 @@
         const display = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), displayMat);
         display.position.set(0, 1.0, -0.48); display.rotation.x = -Math.PI / 6; povGroup.add(display);
 
-        /* PISTA E FAIXAS DE RITMO MULTIPLAS */
+        /* PISTA E FAIXAS */
         const roadMat = new THREE.MeshStandardMaterial({ color: 0x111116, roughness: 0.8 });
         const road = new THREE.Mesh(new THREE.PlaneGeometry(10, 200), roadMat);
         road.rotation.x = -Math.PI / 2; road.position.set(0, 0, -90); scene.add(road);
@@ -256,34 +262,7 @@
             });
         }
 
-        /* CHUVA 3D */
-        const QTD_GOTAS = 400;
-        const rainGeo = new THREE.BufferGeometry();
-        const rainPositions = new Float32Array(QTD_GOTAS * 6);
-        const COMPRIMENTO_GOTA = 0.4;
-
-        for (let i = 0; i < QTD_GOTAS; i++) {
-            const x = (Math.random() - 0.5) * 16;
-            const y = Math.random() * 8;
-            const z = -Math.random() * 30;
-
-            rainPositions[i * 6] = x;
-            rainPositions[i * 6 + 1] = y;
-            rainPositions[i * 6 + 2] = z;
-
-            rainPositions[i * 6 + 3] = x;
-            rainPositions[i * 6 + 4] = y - COMPRIMENTO_GOTA;
-            rainPositions[i * 6 + 5] = z;
-        }
-
-        rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));
-        const rainMat = new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.65 });
-        const rainSystem = new THREE.LineSegments(rainGeo, rainMat);
-        scene.add(rainSystem);
-
-        let velocidadeChuvaY = -0.08;
-
-        /* ELEMENTOS HUD E CONTROLE */
+        /* CONTROLES DA INTERFACE */
         const botoesTempo = document.querySelectorAll('.botao-tempo');
         const painelControle = document.getElementById('painelControle');
         const hudTreinador = document.getElementById('hudTreinador');
@@ -300,12 +279,12 @@
         const elRpm = document.getElementById('rpm');
 
         /* ELEMENTOS DAS SETAS DOS PÉS */
-        const pedalEsq = document.getElementById('pedalEsq');
-        const pedalDir = document.getElementById('pedalDir');
-        const setaEsq = document.getElementById('setaEsq');
-        const setaDir = document.getElementById('setaDir');
-        const statusEsq = document.getElementById('statusEsq');
-        const statusDir = document.getElementById('statusDir');
+        const setaEsqBox = document.getElementById('setaEsqBox');
+        const setaDirBox = document.getElementById('setaDirBox');
+        const setaEsqIcone = document.getElementById('setaEsqIcone');
+        const setaDirIcone = document.getElementById('setaDirIcone');
+        const setaEsqStatus = document.getElementById('setaEsqStatus');
+        const setaDirStatus = document.getElementById('setaDirStatus');
 
         let tempoTotal = 0, tempoRestante = 0;
         let cronometro = null, treinoAtivo = false;
@@ -382,17 +361,16 @@
                 }
 
                 const z = zonas[zonaChaveAtual];
-                const multiplicadorCal = z.vel / 15;
-                calorias += (12 * multiplicadorCal) / 60;
+                calorias += (12 * (z.vel / 15)) / 60;
                 distancia += z.vel / 3600;
 
-                elRpm.textContent = Math.round(z.rpm + Math.sin(tempoRestante / 2) * 5);
+                elRpm.textContent = Math.round(z.rpm + Math.sin(tempoRestante / 2) * 4);
                 atualizaTela();
 
                 if (tempoRestante <= 0) {
                     clearInterval(cronometro);
                     treinoAtivo = false;
-                    falarTreinador("Parabéns! Treino HIIT concluído com sucesso!");
+                    falarTreinador("Treino concluído com sucesso!");
                     btnIniciar.disabled = btnParar.disabled = true;
                 }
             }, 1000);
@@ -407,7 +385,7 @@
                 clearInterval(cronometro);
                 treinoAtivo = false;
                 btnParar.textContent = "Continuar";
-                falarTreinador("Treino HIIT pausado.");
+                falarTreinador("Treino pausado.");
             } else {
                 btnIniciar.click();
                 btnParar.textContent = "Pausar";
@@ -423,7 +401,7 @@
             treinoAtivo = false;
             aplicarEtapaHIIT(0);
             atualizaTela();
-            falarTreinador("Treino HIIT reiniciado!");
+            falarTreinador("Treino reiniciado!");
             btnIniciar.disabled = false;
             btnParar.disabled = true;
             btnReiniciar.disabled = true;
@@ -435,7 +413,7 @@
             else document.exitFullscreen();
         });
 
-        /* LOOP ANIMATE */
+        /* ANIMATE */
         let step = 0;
         function animate() {
             requestAnimationFrame(animate);
@@ -443,23 +421,9 @@
             camera.position.x += (xAlvoCamera - camera.position.x) * 0.08;
             povGroup.position.x = camera.position.x;
 
-            // Animação das gotas de chuva
-            const posAttr = rainGeo.attributes.position;
-            for (let i = 0; i < QTD_GOTAS; i++) {
-                posAttr.array[i * 6 + 1] += velocidadeChuvaY;
-                posAttr.array[i * 6 + 4] += velocidadeChuvaY;
-
-                if (posAttr.array[i * 6 + 1] < 0) {
-                    const novoY = 7 + Math.random() * 2;
-                    posAttr.array[i * 6 + 1] = novoY;
-                    posAttr.array[i * 6 + 4] = novoY - COMPRIMENTO_GOTA;
-                }
-            }
-            posAttr.needsUpdate = true;
-
             if (treinoAtivo) {
                 const z = zonas[zonaChaveAtual];
-                step += 0.03 * (z.rpm / 60);
+                step += 0.035 * (z.rpm / 60);
                 const speed = z.vel / 60;
 
                 trackLines.forEach(line => {
@@ -471,33 +435,32 @@
                 camera.position.y = 1.25 + Math.sin(step * 2) * 0.015;
                 povGroup.position.y = Math.sin(step * 2) * 0.008;
 
-                const anguloBalanco = Math.sin(step) * 0.05;
-                povGroup.rotation.z = anguloBalanco;
+                // BALANÇO DO GUIDÃO NO RITMO DA PEDALADA
+                povGroup.rotation.z = Math.sin(step) * 0.05;
                 povGroup.rotation.y = Math.cos(step) * 0.02;
 
-                // ATUALIZAÇÃO VISUAL DOS INDICADORES DE PEDALADA
-                const fasePedal = Math.sin(step); // Alterna entre -1 e +1
+                // ATUALIZAÇÃO DAS SETAS DOS PÉS (ALTERNÂNCIA CIMA / BAIXO)
+                const alternanciaPedal = Math.sin(step);
 
-                if (fasePedal > 0) {
-                    // Pé Esquerdo Em Cima / Pé Direito Em Baixo
-                    pedalEsq.className = "indicador-pedal esquerdo pedal-em-cima";
-                    setaEsq.textContent = "⬆";
-                    statusEsq.textContent = "CIMA";
+                if (alternanciaPedal > 0) {
+                    // Pé Esquerdo Cima, Pé Direito Baixo
+                    setaEsqBox.className = "painel-seta esquerda ativo-cima";
+                    setaEsqIcone.textContent = "⬆";
+                    setaEsqStatus.textContent = "CIMA";
 
-                    pedalDir.className = "indicador-pedal direito pedal-em-baixo";
-                    setaDir.textContent = "⬇";
-                    statusDir.textContent = "BAIXO";
+                    setaDirBox.className = "painel-seta direita ativo-baixo";
+                    setaDirIcone.textContent = "⬇";
+                    setaDirStatus.textContent = "BAIXO";
                 } else {
-                    // Pé Direito Em Cima / Pé Esquerdo Em Baixo
-                    pedalEsq.className = "indicador-pedal esquerdo pedal-em-baixo";
-                    setaEsq.textContent = "⬇";
-                    statusEsq.textContent = "BAIXO";
+                    // Pé Direito Cima, Pé Esquerdo Baixo
+                    setaEsqBox.className = "painel-seta esquerda ativo-baixo";
+                    setaEsqIcone.textContent = "⬇";
+                    setaEsqStatus.textContent = "BAIXO";
 
-                    pedalDir.className = "indicador-pedal direito pedal-em-cima";
-                    setaDir.textContent = "⬆";
-                    statusDir.textContent = "CIMA";
+                    setaDirBox.className = "painel-seta direita ativo-cima";
+                    setaDirIcone.textContent = "⬆";
+                    setaDirStatus.textContent = "CIMA";
                 }
-
             } else {
                 povGroup.rotation.z *= 0.92;
                 povGroup.rotation.y *= 0.92;
