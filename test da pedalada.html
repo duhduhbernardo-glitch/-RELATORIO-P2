@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — HIIT (Intervalado de Alta Intensidade)</title>
+    <title>Treino 3D — HIIT com Movimento Realista de Guidão</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
@@ -78,7 +78,7 @@
 <body>
 
     <div id="canvas-container">
-        <div class="tag-cenario" id="nomeCenario">⚡ Cyber HIIT — Explosão (30s) e Recuperação (1m)</div>
+        <div class="tag-cenario" id="nomeCenario">⚡ Cyber HIIT — Guidão Dinâmico no Ritmo do Pedal</div>
     </div>
 
     <!-- PAINEL DO TREINADOR -->
@@ -86,7 +86,7 @@
         <div class="treinador-avatar">🚴‍♂️</div>
         <div class="treinador-info">
             <div class="treinador-nome">Coach HIIT Virtual</div>
-            <div class="treinador-fala" id="falaTreinador">Escolha a duração total para iniciar o Treino HIIT!</div>
+            <div class="treinador-fala" id="falaTreinador">Escolha a duração total e siga o balanço do guidão!</div>
         </div>
     </div>
 
@@ -123,10 +123,10 @@
     <script>
         /* ESTRUTURA DO TREINO HIIT (30s tiro / 60s recuperação) */
         const cicloHIIT = [
-            { zona: 'z1', duracao: 60, fala: "Aquecimento de 1 minuto na faixa Z1. Prepare as pernas!" },
-            { zona: 'z4', duracao: 30, fala: "ATENÇÃO! TIRO HIIT! 30 segundos de força total na faixa Z4 SPRINT!" },
+            { zona: 'z1', duracao: 60, fala: "Aquecimento de 1 minuto na Z1. Siga o balanço suave do guidão!" },
+            { zona: 'z4', duracao: 30, fala: "ATENÇÃO! TIRO HIIT! 30s de força total! Acompanhe o guidão acelerar!" },
             { zona: 'z2', duracao: 60, fala: "Boa! Agora recupere por 1 minuto na faixa verde Z2." },
-            { zona: 'z3', duracao: 30, fala: "ACELERA! 30 segundos de potência na faixa Z3 Limiar!" },
+            { zona: 'z3', duracao: 30, fala: "ACELERA! 30s de potência! Siga o ritmo dos pedais!" },
             { zona: 'z1', duracao: 60, fala: "Excelente! Respire fundo e recupere 1 minuto na Z1." },
             { zona: 'z4', duracao: 30, fala: "FORÇA TOTAL! Mais um tiro de 30 segundos na Z4!" }
         ];
@@ -331,7 +331,6 @@
 
                 const etapaAtual = cicloHIIT[indiceEtapaHIIT];
 
-                // Troca de etapa quando atinge o tempo configurado (30s ou 60s)
                 if (tempoSegundosEtapa >= etapaAtual.duracao && tempoRestante > 0) {
                     indiceEtapaHIIT = (indiceEtapaHIIT + 1) % cicloHIIT.length;
                     aplicarEtapaHIIT(indiceEtapaHIIT);
@@ -339,7 +338,7 @@
 
                 const z = zonas[zonaChaveAtual];
                 const multiplicadorCal = z.vel / 15;
-                calorias += (12 * multiplicadorCal) / 60; // Gasto calórico acelerado para HIIT
+                calorias += (12 * multiplicadorCal) / 60;
                 distancia += z.vel / 3600;
 
                 elRpm.textContent = Math.round(z.rpm + Math.sin(tempoRestante / 2) * 5);
@@ -396,7 +395,7 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // Transição lateral rápida para representar a agilidade do HIIT
+            // Transição lateral suave para trocar de faixa
             camera.position.x += (xAlvoCamera - camera.position.x) * 0.08;
             povGroup.position.x = camera.position.x;
 
@@ -416,8 +415,10 @@
 
             if (treinoAtivo) {
                 const z = zonas[zonaChaveAtual];
-                const frequenciaVibracao = z.rpm / 35;
-                step += 0.04 * frequenciaVibracao;
+                
+                // A frequência do balanço depende da cadência (RPM)
+                const frequenciaPedal = (z.rpm / 60) * Math.PI; 
+                step += 0.03 * (z.rpm / 60);
                 const speed = z.vel / 60;
 
                 trackLines.forEach(line => {
@@ -425,8 +426,19 @@
                     if (line.position.z > 5) line.position.z = -195;
                 });
 
-                camera.position.y = 1.25 + Math.sin(step * 2) * 0.018;
-                povGroup.position.y = Math.sin(step * 2) * 0.01;
+                // Movimento vertical (corpo subindo e descendo ao pedalar)
+                camera.position.y = 1.25 + Math.sin(step * 2) * 0.015;
+                povGroup.position.y = Math.sin(step * 2) * 0.008;
+
+                // MOVIMENTO DO GUIDÃO SINCRONIZADO COM O RITMO DO PEDAL
+                // Inclinando o guidão levemente para os lados (Eixo Z) e girando (Eixo Y)
+                const anguloBalanco = Math.sin(step) * 0.05; // Ajuste de inclinação lateral
+                povGroup.rotation.z = anguloBalanco;
+                povGroup.rotation.y = Math.cos(step) * 0.02; // Leve rotação de direção
+            } else {
+                // Suaviza o guidão de volta ao centro quando pausado
+                povGroup.rotation.z *= 0.92;
+                povGroup.rotation.y *= 0.92;
             }
 
             renderer.render(scene, camera);
