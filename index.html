@@ -3,103 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — Cenários Aleatórios | Simulador POV</title>
+    <title>Treino 3D — Mini Painel</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Arial, sans-serif; }
-        :root { --verde:#4CAF50; --escuro:#0a0a0c; --cinza:rgba(18, 18, 22, 0.75); --texto:#e0e0e0; --destaque:#81C784; }
-        body, html { width:100%; height:100%; overflow:hidden; background:var(--escuro); color:var(--texto); }
+        * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
+        body, html { width:100%; height:100%; overflow:hidden; background:#000; color:#fff; }
 
-        /* CANVAS 3D EM TELA CHEIA */
         #canvas-container { width:100vw; height:100vh; position:absolute; top:0; left:0; z-index:1; }
 
         .tag-cenario { 
-            position:absolute; top:12px; left:12px; 
-            background:rgba(0,0,0,0.6); padding:6px 12px; border-radius:15px; 
-            font-size:0.75rem; color:#81C784; border:1px solid rgba(76,175,80,0.5); 
-            pointer-events:none; z-index:2; backdrop-filter:blur(5px);
+            position:absolute; top:8px; left:8px; 
+            background:rgba(0,0,0,0.5); padding:4px 8px; border-radius:10px; 
+            font-size:0.65rem; color:#81C784; z-index:2; pointer-events:none;
         }
 
-        /* PAINEL COMPACTO (Foco na visão 3D) */
+        /* PAINEL MINIATURA */
         .painel-controle { 
-            position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
-            width:92%; max-width:650px; background:var(--cinza); 
-            border-radius:12px; padding:10px 14px; border:1px solid rgba(76,175,80,0.4); 
-            box-shadow:0 4px 20px rgba(0,0,0,0.5); z-index:2; 
-            backdrop-filter:blur(8px); display:flex; flex-direction:column; gap:6px;
+            position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
+            width:90%; max-width:400px; background:rgba(10, 10, 12, 0.65); 
+            border-radius:10px; padding:6px 10px; border:1px solid rgba(76,175,80,0.3); 
+            z-index:2; backdrop-filter:blur(4px); display:flex; flex-direction:column; gap:4px;
         }
 
-        .titulo-painel { font-size:0.8rem; color:var(--destaque); text-align:center; text-transform:uppercase; letter-spacing:0.5px; }
-
-        /* BOTOES DE TEMPO MAIS DISCRETOS E SCROLLAVEL EM MOBILE */
-        .opcoes-tempo { 
-            display:flex; justify-content:center; gap:4px; 
-            overflow-x:auto; padding-bottom:2px;
-            -webkit-overflow-scrolling: touch;
-        }
-        .opcoes-tempo::-webkit-scrollbar { height:3px; }
-        .opcoes-tempo::-webkit-scrollbar-thumb { background:var(--verde); border-radius:3px; }
+        .opcoes-tempo { display:flex; gap:3px; overflow-x:auto; padding-bottom:2px; }
+        .opcoes-tempo::-webkit-scrollbar { display:none; }
 
         .botao-tempo { 
-            padding:3px 8px; font-size:0.75rem; font-weight:bold; 
-            border:1px solid #444; border-radius:6px; background:rgba(0,0,0,0.5); 
-            color:var(--texto); cursor:pointer; transition:0.2s; white-space:nowrap;
+            padding:2px 6px; font-size:0.65rem; font-weight:bold; 
+            border:1px solid #333; border-radius:4px; background:rgba(0,0,0,0.6); 
+            color:#ccc; cursor:pointer; white-space:nowrap;
         }
-        .botao-tempo.selecionado { border-color:var(--verde); background:rgba(76,175,80,0.3); color:var(--verde); }
-        .botao-tempo:hover { border-color:var(--destaque); }
+        .botao-tempo.selecionado { border-color:#4CAF50; background:rgba(76,175,80,0.3); color:#81C784; }
 
-        /* PAINEL DE METRICAS EM LINHA */
-        .dados-treino { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
+        .dados-treino { display:flex; justify-content:space-between; text-align:center; background:rgba(0,0,0,0.3); padding:3px 6px; border-radius:4px; }
+        .dado { flex:1; }
+        .dado span { font-size:0.75rem; font-weight:bold; color:#81C784; font-family:monospace; }
+        .dado label { font-size:0.55rem; color:#888; display:block; }
 
-        .dado { background:rgba(0,0,0,0.4); padding:4px; border-radius:6px; text-align:center; border-left:2px solid var(--verde); }
-        .dado span { font-size:0.95rem; font-weight:bold; color:var(--verde); display:block; font-family:monospace; }
-        .dado label { font-size:0.65rem; color:#aaa; display:block; }
+        .tempo-restante { font-size:0.95rem; font-weight:bold; color:#4CAF50; font-family:monospace; text-align:center; }
+        .barra-progresso { width:100%; height:3px; background:#222; border-radius:2px; overflow:hidden; }
+        .progresso { height:100%; background:#4CAF50; width:0%; transition:width 0.3s; }
 
-        /* CONTADOR E STATUS COMPACTOS */
-        .contador { text-align:center; padding:4px 8px; background:rgba(0,0,0,0.4); border-radius:6px; border:1px solid rgba(76,175,80,0.3); }
-        .tempo-restante { font-size:1.2rem; font-weight:bold; color:var(--verde); font-family:monospace; line-height:1; }
-        .barra-progresso { width:100%; height:4px; background:#333; border-radius:2px; overflow:hidden; margin-top:3px; }
-        .progresso { height:100%; background:linear-gradient(90deg, var(--verde), var(--destaque)); width:0%; transition:width 0.3s; }
-        .status { font-size:0.7rem; color:#aaa; margin-top:2px; }
-
-        /* BOTOES DE AÇÃO EM TAMANHO REDUZIDO */
-        .botoes-acao { display:flex; gap:6px; justify-content:center; }
-        .btn { padding:5px 12px; font-size:0.75rem; font-weight:bold; border:none; border-radius:6px; cursor:pointer; transition:0.2s; }
-        .btn.iniciar { background:var(--verde); color:white; }
+        .botoes-acao { display:flex; gap:4px; justify-content:center; }
+        .btn { padding:3px 8px; font-size:0.65rem; font-weight:bold; border:none; border-radius:4px; cursor:pointer; }
+        .btn.iniciar { background:#4CAF50; color:white; }
         .btn.parar { background:#f44336; color:white; }
         .btn.reiniciar { background:#ff9800; color:white; }
         .btn.tela-cheia { background:#2196F3; color:white; }
         .btn:disabled { opacity:0.3; cursor:not-allowed; }
-
-        /* AJUSTES RESPONSIVOS PARA SMARTPHONES */
-        @media(max-width:600px){
-            .painel-controle { width:96%; padding:8px; bottom:8px; gap:4px; }
-            .dado span { font-size:0.85rem; }
-            .dado label { font-size:0.6rem; }
-            .tempo-restante { font-size:1.1rem; }
-            .btn { padding:4px 8px; font-size:0.7rem; }
-            .opcoes-tempo { justify-content:flex-start; }
-        }
     </style>
 </head>
 <body>
 
-    <!-- CANVAS 3D EM TELA CHEIA -->
     <div id="canvas-container">
-        <div class="tag-cenario" id="nomeCenario">🌲 Cenário: Noturno Clássico</div>
+        <div class="tag-cenario" id="nomeCenario">🌲 Cyber Neon</div>
     </div>
 
-    <!-- PAINEL FIXO ULTRA COMPACTO -->
+    <!-- PAINEL MINI -->
     <div class="painel-controle">
         <div class="opcoes-tempo">
-            <button class="botao-tempo" data-segundos="300">5 min</button>
-            <button class="botao-tempo" data-segundos="600">10 min</button>
-            <button class="botao-tempo" data-segundos="900">15 min</button>
-            <button class="botao-tempo" data-segundos="1200">20 min</button>
-            <button class="botao-tempo" data-segundos="1500">25 min</button>
-            <button class="botao-tempo" data-segundos="1800">30 min</button>
-            <button class="botao-tempo" data-segundos="2700">45 min</button>
-            <button class="botao-tempo" data-segundos="3600">60 min</button>
+            <button class="botao-tempo" data-segundos="300">5m</button>
+            <button class="botao-tempo" data-segundos="600">10m</button>
+            <button class="botao-tempo" data-segundos="900">15m</button>
+            <button class="botao-tempo" data-segundos="1200">20m</button>
+            <button class="botao-tempo" data-segundos="1500">25m</button>
+            <button class="botao-tempo" data-segundos="1800">30m</button>
+            <button class="botao-tempo" data-segundos="2700">45m</button>
+            <button class="botao-tempo" data-segundos="3600">60m</button>
         </div>
 
         <div class="dados-treino">
@@ -109,11 +79,8 @@
             <div class="dado"><span id="rpm">75</span><label>RPM</label></div>
         </div>
 
-        <div class="contador">
-            <div class="tempo-restante" id="tempo">00:00:00</div>
-            <div class="barra-progresso"><div class="progresso" id="barra"></div></div>
-            <div class="status" id="status">Escolha a duração para sortear o cenário</div>
-        </div>
+        <div class="tempo-restante" id="tempo">00:00:00</div>
+        <div class="barra-progresso"><div class="progresso" id="barra"></div></div>
 
         <div class="botoes-acao">
             <button class="btn iniciar" id="btnIniciar" disabled>Iniciar</button>
@@ -126,7 +93,6 @@
     <script>
         const container = document.getElementById('canvas-container');
         
-        /* CENA & CÂMERA POV 3D */
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 1.25, 0);
@@ -136,7 +102,6 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        /* ILUMINAÇÃO GERAL E FAROL DO GUIDÃO */
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
         scene.add(ambientLight);
 
@@ -146,7 +111,6 @@
         scene.add(headlight);
         scene.add(headlight.target);
 
-        /* GUIDÃO DO CICLISTA (POV) */
         const povGroup = new THREE.Group();
         scene.add(povGroup);
 
@@ -173,27 +137,21 @@
         gripR.position.set(-0.3, 0.95, -0.5);
         povGroup.add(gripR);
 
-        const screenGeo = new THREE.BoxGeometry(0.12, 0.08, 0.02);
-        const screenMat = new THREE.MeshBasicMaterial({ color: 0x4CAF50 });
-        const display = new THREE.Mesh(screenGeo, screenMat);
+        const display = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), new THREE.MeshBasicMaterial({ color: 0x4CAF50 }));
         display.position.set(0, 1.0, -0.48);
         display.rotation.x = -Math.PI / 6;
         povGroup.add(display);
 
-        /* PISTA E ESTRUTURAS DO CENÁRIO */
-        const roadGeo = new THREE.PlaneGeometry(12, 200);
         const roadMat = new THREE.MeshStandardMaterial({ color: 0x15151c, roughness: 0.8 });
-        const road = new THREE.Mesh(roadGeo, roadMat);
+        const road = new THREE.Mesh(new THREE.PlaneGeometry(12, 200), roadMat);
         road.rotation.x = -Math.PI / 2;
         road.position.set(0, 0, -90);
         scene.add(road);
 
         const trackLines = [];
-        const lineGeo = new THREE.BoxGeometry(0.15, 0.01, 2);
         const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
         for (let i = 0; i < 20; i++) {
-            const line = new THREE.Mesh(lineGeo, lineMat);
+            const line = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.01, 2), lineMat);
             line.position.set(0, 0.01, -i * 10);
             scene.add(line);
             trackLines.push(line);
@@ -201,22 +159,17 @@
 
         const polesGroup = new THREE.Group();
         scene.add(polesGroup);
-
-        const poleGeo = new THREE.CylinderGeometry(0.05, 0.05, 4);
         const poleMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-        const lampGeo = new THREE.SphereGeometry(0.25, 16, 16);
         let lampMat = new THREE.MeshBasicMaterial({ color: 0x81C784 });
-
         const poles = [];
         for (let i = 0; i < 10; i++) {
-            const poleL = new THREE.Mesh(poleGeo, poleMat);
+            const poleL = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 4), poleMat);
             poleL.position.set(-4.5, 2, -i * 20);
-            const lampL = new THREE.Mesh(lampGeo, lampMat);
+            const lampL = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), lampMat);
             lampL.position.set(-4.5, 4, -i * 20);
-
-            const poleR = new THREE.Mesh(poleGeo, poleMat);
+            const poleR = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 4), poleMat);
             poleR.position.set(4.5, 2, -i * 20);
-            const lampR = new THREE.Mesh(lampGeo, lampMat);
+            const lampR = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), lampMat);
             lampR.position.set(4.5, 4, -i * 20);
 
             polesGroup.add(poleL); polesGroup.add(lampL);
@@ -224,13 +177,12 @@
             poles.push(poleL, lampL, poleR, lampR);
         }
 
-        /* CENÁRIOS ALEATÓRIOS */
         const temasCenarios = [
-            { nome: "🌃 Circuito Cyber Neon", bg: 0x060411, road: 0x090814, line: 0x00ffff, light: 0xff00ff, fog: 0.02 },
-            { nome: "🌅 Pôr do Sol na Rodovia", bg: 0x2b1108, road: 0x1c1716, line: 0xffaa00, light: 0xff4500, fog: 0.015 },
-            { nome: "🌲 Estradas da Floresta", bg: 0x03120e, road: 0x0f1715, line: 0x4CAF50, light: 0x81C784, fog: 0.025 },
-            { nome: "🌌 Pista Galáctica Noturna", bg: 0x0a0a16, road: 0x141424, line: 0x3f51b5, light: 0x00bcd4, fog: 0.018 },
-            { nome: "🏙️ Túnel Urbano Noturno", bg: 0x111111, road: 0x222222, line: 0xffeb3b, light: 0xffffff, fog: 0.012 }
+            { nome: "🌃 Cyber Neon", bg: 0x060411, road: 0x090814, line: 0x00ffff, light: 0xff00ff, fog: 0.02 },
+            { nome: "🌅 Pôr do Sol", bg: 0x2b1108, road: 0x1c1716, line: 0xffaa00, light: 0xff4500, fog: 0.015 },
+            { nome: "🌲 Floresta", bg: 0x03120e, road: 0x0f1715, line: 0x4CAF50, light: 0x81C784, fog: 0.025 },
+            { nome: "🌌 Galáxia", bg: 0x0a0a16, road: 0x141424, line: 0x3f51b5, light: 0x00bcd4, fog: 0.018 },
+            { nome: "🏙️ Túnel Urbano", bg: 0x111111, road: 0x222222, line: 0xffeb3b, light: 0xffffff, fog: 0.012 }
         ];
 
         function gerarCenarioAleatorio() {
@@ -242,15 +194,13 @@
             headlight.color.setHex(tema.light);
             lampMat.color.setHex(tema.light);
             display.material.color.setHex(tema.line);
-            document.getElementById('nomeCenario').textContent = `🎮 Cenário: ${tema.nome}`;
+            document.getElementById('nomeCenario').textContent = `🎮 ${tema.nome}`;
         }
 
         gerarCenarioAleatorio();
 
-        /* LÓGICA DO CONTROLE DO TREINO */
         const botoesTempo = document.querySelectorAll('.botao-tempo');
         const tempoEl = document.getElementById('tempo');
-        const statusEl = document.getElementById('status');
         const btnIniciar = document.getElementById('btnIniciar');
         const btnParar = document.getElementById('btnParar');
         const btnReiniciar = document.getElementById('btnReiniciar');
@@ -262,7 +212,6 @@
 
         let tempoTotal = 0, tempoRestante = 0, cronometro = null, treinoAtivo = false;
         let calorias = 0, distancia = 0, vel = 22.5;
-        const calPorSegundo = 9 / 60;
 
         botoesTempo.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -270,11 +219,9 @@
                 btn.classList.add('selecionado');
                 tempoTotal = parseInt(btn.dataset.segundos);
                 tempoRestante = tempoTotal;
-                
                 gerarCenarioAleatorio();
                 atualizaTela();
                 btnIniciar.disabled = false;
-                statusEl.textContent = `Tempo: ${btn.textContent} | Cenário Gerado!`;
             });
         });
 
@@ -287,8 +234,7 @@
 
         function atualizaTela() {
             tempoEl.textContent = formatarTempo(tempoRestante);
-            const pct = tempoTotal > 0 ? ((tempoTotal - tempoRestante) / tempoTotal) * 100 : 0;
-            barra.style.width = `${pct}%`;
+            barra.style.width = `${tempoTotal > 0 ? ((tempoTotal - tempoRestante) / tempoTotal) * 100 : 0}%`;
             elCal.textContent = Math.round(calorias);
             elKm.textContent = distancia.toFixed(2);
         }
@@ -296,53 +242,39 @@
         btnIniciar.addEventListener('click', () => {
             if(tempoRestante <= 0) return;
             treinoAtivo = true;
-            iniciarLoop();
-            btnIniciar.disabled = true;
-            btnParar.disabled = false;
-            btnReiniciar.disabled = false;
-            statusEl.textContent = "🔥 Treino em andamento...";
-        });
-
-        function iniciarLoop() {
             if(cronometro) clearInterval(cronometro);
             cronometro = setInterval(() => {
                 tempoRestante--;
-                calorias += calPorSegundo;
+                calorias += 9/60;
                 distancia += vel / 3600;
-
-                const flutuacao = Math.sin(tempoRestante / 3) * 5;
-                elRpm.textContent = Math.round(75 + flutuacao);
-
+                elRpm.textContent = Math.round(75 + Math.sin(tempoRestante / 3) * 5);
                 atualizaTela();
-
                 if (tempoRestante <= 0) {
                     clearInterval(cronometro);
                     treinoAtivo = false;
-                    statusEl.textContent = "🏆 Treino concluído!";
                     btnIniciar.disabled = btnParar.disabled = true;
                 }
             }, 1000);
-        }
+            btnIniciar.disabled = true;
+            btnParar.disabled = false;
+            btnReiniciar.disabled = false;
+        });
 
         btnParar.addEventListener('click', () => {
             if (treinoAtivo) {
                 clearInterval(cronometro);
                 treinoAtivo = false;
                 btnParar.textContent = "Continuar";
-                statusEl.textContent = "⏸️ Pausado";
             } else {
-                treinoAtivo = true;
-                iniciarLoop();
+                btnIniciar.click();
                 btnParar.textContent = "Pausar";
-                statusEl.textContent = "🔥 Em andamento...";
             }
         });
 
         btnReiniciar.addEventListener('click', () => {
             clearInterval(cronometro);
             tempoRestante = tempoTotal;
-            calorias = 0;
-            distancia = 0;
+            calorias = 0; distancia = 0;
             treinoAtivo = false;
             gerarCenarioAleatorio();
             atualizaTela();
@@ -350,18 +282,13 @@
             btnParar.disabled = true;
             btnReiniciar.disabled = true;
             btnParar.textContent = "Pausar";
-            statusEl.textContent = "Reiniciado.";
         });
 
         btnTela.addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-            } else {
-                document.exitFullscreen();
-            }
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
         });
 
-        /* RENDER E ANIMAÇÃO 3D */
         let step = 0;
         function animate() {
             requestAnimationFrame(animate);
