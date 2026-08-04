@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Treino 3D — Zonas de Intensidade</title>
+    <title>Treino 3D — Treinador no Controle</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
@@ -17,45 +17,59 @@
             font-size:0.65rem; color:#81C784; z-index:2; pointer-events:none;
         }
 
+        /* HUD DO TREINADOR VIRTUAL */
+        .hud-treinador {
+            position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 480px; background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #2196F3; border-radius: 10px; padding: 10px 14px;
+            z-index: 3; display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+            transition: border-color 0.5s, box-shadow 0.5s;
+        }
+        .treinador-avatar { font-size: 2rem; }
+        .treinador-info { display: flex; flex-direction: column; flex: 1; }
+        .treinador-nome { font-size: 0.65rem; text-transform: uppercase; color: #aaa; letter-spacing: 1px; font-weight: bold; }
+        .treinador-fala { font-size: 0.85rem; font-weight: bold; color: #fff; line-height: 1.2; }
+
         .painel-controle { 
             position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
-            width:90%; max-width:420px; background:rgba(10, 10, 12, 0.75); 
-            border-radius:12px; padding:8px 12px; border:2px solid #81C784; 
-            z-index:2; backdrop-filter:blur(6px); display:flex; flex-direction:column; gap:6px;
+            width:90%; max-width:420px; background:rgba(10, 10, 12, 0.85); 
+            border-radius:12px; padding:10px 12px; border:2px solid #2196F3; 
+            z-index:2; backdrop-filter:blur(6px); display:flex; flex-direction:column; gap:8px;
             transition: border-color 0.5s ease;
         }
 
         .secao-label { font-size:0.55rem; color:#aaa; text-transform:uppercase; letter-spacing:1px; margin-bottom:2px; }
 
-        .opcoes-tempo, .opcoes-zona { display:flex; gap:3px; overflow-x:auto; padding-bottom:2px; }
-        .opcoes-tempo::-webkit-scrollbar, .opcoes-zona::-webkit-scrollbar { display:none; }
+        .opcoes-tempo { display:flex; gap:4px; overflow-x:auto; padding-bottom:2px; }
+        .opcoes-tempo::-webkit-scrollbar { display:none; }
 
-        .botao-tempo, .botao-zona { 
-            padding:3px 8px; font-size:0.65rem; font-weight:bold; 
+        .botao-tempo { 
+            padding:4px 8px; font-size:0.65rem; font-weight:bold; 
             border:1px solid #333; border-radius:4px; background:rgba(0,0,0,0.6); 
             color:#ccc; cursor:pointer; white-space:nowrap; transition:all 0.3s;
         }
-        
-        /* Estilos das Zonas */
-        .botao-zona[data-zona="z1"] { border-color:#2196F3; }
-        .botao-zona[data-zona="z2"] { border-color:#4CAF50; }
-        .botao-zona[data-zona="z3"] { border-color:#FF9800; }
-        .botao-zona[data-zona="z4"] { border-color:#F44336; }
+        .botao-tempo.selecionado { border-color:#fff; background:rgba(255,255,255,0.25); color:#fff; }
 
-        .botao-tempo.selecionado { border-color:#fff; background:rgba(255,255,255,0.2); color:#fff; }
-        .botao-zona.selecionado { color:#fff; font-weight:900; box-shadow:0 0 8px currentColor; }
+        /* INDICADOR DA ZONA ATUAL (DEFINIDA PELO COACH) */
+        .badge-zona-atual {
+            display: inline-block; padding: 4px 10px; border-radius: 6px;
+            font-size: 0.75rem; font-weight: bold; text-align: center;
+            background: #2196F3; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            transition: background-color 0.5s ease;
+        }
 
-        .dados-treino { display:flex; justify-content:space-between; text-align:center; background:rgba(0,0,0,0.4); padding:4px 6px; border-radius:6px; }
+        .dados-treino { display:flex; justify-content:space-between; text-align:center; background:rgba(0,0,0,0.4); padding:6px 8px; border-radius:6px; }
         .dado { flex:1; }
-        .dado span { font-size:0.8rem; font-weight:bold; color:#81C784; font-family:monospace; transition:color 0.5s; }
+        .dado span { font-size:0.9rem; font-weight:bold; color:#2196F3; font-family:monospace; transition:color 0.5s; }
         .dado label { font-size:0.55rem; color:#888; display:block; }
 
-        .tempo-restante { font-size:1.1rem; font-weight:bold; color:#4CAF50; font-family:monospace; text-align:center; transition:color 0.5s; }
+        .tempo-restante { font-size:1.1rem; font-weight:bold; color:#2196F3; font-family:monospace; text-align:center; transition:color 0.5s; }
         .barra-progresso { width:100%; height:4px; background:#222; border-radius:2px; overflow:hidden; }
-        .progresso { height:100%; background:#4CAF50; width:0%; transition:width 0.3s, background-color 0.5s; }
+        .progresso { height:100%; background:#2196F3; width:0%; transition:width 0.3s, background-color 0.5s; }
 
         .botoes-acao { display:flex; gap:4px; justify-content:center; }
-        .btn { padding:4px 10px; font-size:0.65rem; font-weight:bold; border:none; border-radius:4px; cursor:pointer; }
+        .btn { padding:5px 12px; font-size:0.7rem; font-weight:bold; border:none; border-radius:4px; cursor:pointer; }
         .btn.iniciar { background:#4CAF50; color:white; }
         .btn.parar { background:#f44336; color:white; }
         .btn.reiniciar { background:#ff9800; color:white; }
@@ -69,8 +83,17 @@
         <div class="tag-cenario" id="nomeCenario">🌧️ Cyber Chuva Neon</div>
     </div>
 
+    <!-- PAINEL DO TREINADOR VIRTUAL -->
+    <div class="hud-treinador" id="hudTreinador">
+        <div class="treinador-avatar">🚴‍♂️</div>
+        <div class="treinador-info">
+            <div class="treinador-nome">Treinador Automático</div>
+            <div class="treinador-fala" id="falaTreinador">Escolha o tempo de treino. Eu comandarei seu ritmo e suas velocidades!</div>
+        </div>
+    </div>
+
     <div class="painel-controle" id="painelControle">
-        <div class="secao-label">Duração:</div>
+        <div class="secao-label">Duração do Treino:</div>
         <div class="opcoes-tempo">
             <button class="botao-tempo" data-segundos="300">5m</button>
             <button class="botao-tempo" data-segundos="600">10m</button>
@@ -80,12 +103,9 @@
             <button class="botao-tempo" data-segundos="3600">60m</button>
         </div>
 
-        <div class="secao-label">Zona de Esforço:</div>
-        <div class="opcoes-zona">
-            <button class="botao-zona selecionado" data-zona="z1" data-vel="18" data-rpm="65" data-cor="#2196F3">Z1 Recuperação</button>
-            <button class="botao-zona" data-zona="z2" data-vel="25" data-rpm="80" data-cor="#4CAF50">Z2 Moderado</button>
-            <button class="botao-zona" data-zona="z3" data-vel="32" data-rpm="95" data-cor="#FF9800">Z3 Limiar</button>
-            <button class="botao-zona" data-zona="z4" data-vel="42" data-rpm="115" data-cor="#F44336">Z4 Sprint / Tiro</button>
+        <div class="secao-label">Ritmo Determinado pelo Coach:</div>
+        <div>
+            <span class="badge-zona-atual" id="badgeZona">Z1 — Aquecimento (Esperando)</span>
         </div>
 
         <div class="dados-treino">
@@ -99,7 +119,7 @@
         <div class="barra-progresso"><div class="progresso" id="barra"></div></div>
 
         <div class="botoes-acao">
-            <button class="btn iniciar" id="btnIniciar" disabled>Iniciar</button>
+            <button class="btn iniciar" id="btnIniciar" disabled>Iniciar Treino</button>
             <button class="btn parar" id="btnParar" disabled>Pausar</button>
             <button class="btn reiniciar" id="btnReiniciar" disabled>Reiniciar</button>
             <button class="btn tela-cheia" id="btnTela">Tela Cheia</button>
@@ -107,43 +127,70 @@
     </div>
 
     <script>
-        /* SINTETIZADOR DE ÁUDIO */
-        let audioCtx = null;
-        function getAudioContext() {
-            if (!audioCtx) {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AudioContext();
+        /* DEFINIÇÕES DAS ZONAS DE ESFORÇO */
+        const zonasTreino = [
+            {
+                id: 'z1',
+                nome: 'Z1 — Aquecimento / Recuperação',
+                vel: 18.0,
+                rpm: 65,
+                cor: '#2196F3',
+                falas: [
+                    "Modo Z1 ativado! Mantenha os giros suaves para aquecer.",
+                    "Aproveite este momento para soltar as pernas e regular a respiração.",
+                    "Ritmo leve de recuperação! Gire suavemente."
+                ]
+            },
+            {
+                id: 'z2',
+                nome: 'Z2 — Ritmo Moderado',
+                vel: 26.0,
+                rpm: 82,
+                cor: '#4CAF50',
+                falas: [
+                    "Subindo para Z2! Entre no ritmo de cruzeiro.",
+                    "Aumente ligeiramente a cadência. Mantenha a força nos pedais!",
+                    "Ótimo ritmo para queimar gordura e ganhar resistência!"
+                ]
+            },
+            {
+                id: 'z3',
+                nome: 'Z3 — Limiar / Esforço Intenso',
+                vel: 34.0,
+                rpm: 96,
+                cor: '#FF9800',
+                falas: [
+                    "Atenção! Entrando em Z3! Pressione mais forte os pedais!",
+                    "Ritmo forte! Segure a cadência em 95 RPM!",
+                    "Sinta o esforço! Respiração funda e foco total no caminho!"
+                ]
+            },
+            {
+                id: 'z4',
+                nome: 'Z4 — SPRINT MÁXIMO!',
+                vel: 45.0,
+                rpm: 120,
+                cor: '#F44336',
+                falas: [
+                    "⚡ HORA DO TIRO! Z4 SPRINT! ACELERA TUDO!",
+                    "⚡ VAI VAI VAI! Força máxima nos pedais até o limite!",
+                    "⚡ Dê o seu máximo agora! Não solte o guidão!"
+                ]
             }
-            return audioCtx;
-        }
+        ];
 
-        function tocarSomBipRegressivo() {
-            const ctx = getAudioContext();
-            if (!ctx) return;
-            const osc = ctx.createOscillator(); const gain = ctx.createGain();
-            osc.type = 'sine'; osc.frequency.setValueAtTime(440, ctx.currentTime);
-            gain.gain.setValueAtTime(0.2, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.15);
-        }
+        let zonaAtualObj = zonasTreino[0];
 
-        function tocarSomFimTreino() {
-            const ctx = getAudioContext();
-            if (!ctx) return;
-            const osc1 = ctx.createOscillator(); const gain1 = ctx.createGain();
-            osc1.type = 'sine'; osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
-            gain1.gain.setValueAtTime(0.3, ctx.currentTime);
-            gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-            osc1.connect(gain1); gain1.connect(ctx.destination);
-            osc1.start(ctx.currentTime); osc1.stop(ctx.currentTime + 0.3);
-
-            const osc2 = ctx.createOscillator(); const gain2 = ctx.createGain();
-            osc2.type = 'sine'; osc2.frequency.setValueAtTime(880, ctx.currentTime + 0.35);
-            gain2.gain.setValueAtTime(0.4, ctx.currentTime + 0.35);
-            gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.9);
-            osc2.connect(gain2); gain2.connect(ctx.destination);
-            osc2.start(ctx.currentTime + 0.35); osc2.stop(ctx.currentTime + 0.9);
+        /* SINTETIZADOR DE VOZ */
+        function falarTreinador(texto) {
+            document.getElementById('falaTreinador').textContent = texto;
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const fala = new SpeechSynthesisUtterance(texto);
+                fala.lang = 'pt-BR';
+                fala.rate = 1.05;
+                window.speechSynthesis.speak(fala);
+            }
         }
 
         /* THREE.JS SETUP */
@@ -183,15 +230,18 @@
         const gripR = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.15), matGrip);
         gripR.rotation.z = Math.PI / 2; gripR.position.set(-0.3, 0.95, -0.5); povGroup.add(gripR);
 
-        /* DISPLAY NO GUIDÃO (Muda de cor com a Zona) */
         const displayMat = new THREE.MeshBasicMaterial({ color: 0x2196F3 });
         const display = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.02), displayMat);
         display.position.set(0, 1.0, -0.48); display.rotation.x = -Math.PI / 6; povGroup.add(display);
 
-        /* PISTA E POSTES */
+        /* PISTA E FAIXA CENTRAL */
         const roadMat = new THREE.MeshStandardMaterial({ color: 0x15151c, roughness: 0.8 });
         const road = new THREE.Mesh(new THREE.PlaneGeometry(12, 200), roadMat);
         road.rotation.x = -Math.PI / 2; road.position.set(0, 0, -90); scene.add(road);
+
+        const faixaCentralMat = new THREE.MeshBasicMaterial({ color: 0x2196F3 });
+        const faixaCentral = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 200), faixaCentralMat);
+        faixaCentral.rotation.x = -Math.PI / 2; faixaCentral.position.set(0, 0.005, -90); scene.add(faixaCentral);
 
         const trackLines = [];
         const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -240,33 +290,11 @@
 
         let velocidadeChuvaY = -0.08;
 
-        /* CENÁRIOS */
-        const temasCenarios = [
-            { nome: "🌧️ Cyber Chuva Neon", bg: 0x060411, road: 0x090814, line: 0x00ffff, light: 0xff00ff, fog: 0.02, pColor: 0x00ffff, vY: -0.08 },
-            { nome: "🌅 Chuva de Verão", bg: 0x2b1108, road: 0x1c1716, line: 0xffaa00, light: 0xff4500, fog: 0.015, pColor: 0xffaa00, vY: -0.06 },
-            { nome: "🌲 Garoa da Floresta", bg: 0x03120e, road: 0x0f1715, line: 0x4CAF50, light: 0x81C784, fog: 0.025, pColor: 0x81C784, vY: -0.04 },
-            { nome: "🌌 Tempestade Cósmica", bg: 0x0a0a16, road: 0x141424, line: 0x3f51b5, light: 0x00bcd4, fog: 0.018, pColor: 0xff00ff, vY: -0.07 }
-        ];
-
-        function gerarCenarioAleatorio() {
-            const tema = temasCenarios[Math.floor(Math.random() * temasCenarios.length)];
-            scene.background = new THREE.Color(tema.bg);
-            scene.fog = new THREE.FogExp2(tema.bg, tema.fog);
-            roadMat.color.setHex(tema.road);
-            lineMat.color.setHex(tema.line);
-            headlight.color.setHex(tema.light);
-            lampMat.color.setHex(tema.light);
-            rainMat.color.setHex(tema.pColor);
-            velocidadeChuvaY = tema.vY;
-            document.getElementById('nomeCenario').textContent = `🎮 ${tema.nome}`;
-        }
-
-        gerarCenarioAleatorio();
-
-        /* VARIÁVEIS DO TREINO E ZONAS */
+        /* VARIAVEIS DE ESTADO DO TREINO */
         const botoesTempo = document.querySelectorAll('.botao-tempo');
-        const botoesZona = document.querySelectorAll('.botao-zona');
         const painelControle = document.getElementById('painelControle');
+        const hudTreinador = document.getElementById('hudTreinador');
+        const badgeZona = document.getElementById('badgeZona');
         const tempoEl = document.getElementById('tempo');
         const btnIniciar = document.getElementById('btnIniciar');
         const btnParar = document.getElementById('btnParar');
@@ -280,39 +308,41 @@
 
         let tempoTotal = 0, tempoRestante = 0, cronometro = null, treinoAtivo = false;
         let calorias = 0, distancia = 0;
-        
-        // Dados da Zona Atual
-        let velAlvo = 18.0;
-        let rpmAlvo = 65;
-        let corZonaAtual = "#2196F3";
         let fatorAvancoPista = 0.3;
+        let proximaTrocaZonaEm = 0; // Contagem regressiva para o treinador alterar o ritmo
 
-        /* SELEÇÃO DE ZONA DE INTENSIDADE */
-        botoesZona.forEach(btn => {
-            btn.addEventListener('click', () => {
-                botoesZona.forEach(b => b.classList.remove('selecionado'));
-                btn.classList.add('selecionado');
-                
-                velAlvo = parseFloat(btn.dataset.vel);
-                rpmAlvo = parseInt(btn.dataset.rpm);
-                corZonaAtual = btn.dataset.cor;
-                
-                // Atualiza velocidade visual da pista conforme a zona
-                fatorAvancoPista = velAlvo / 60;
+        // Aplica a nova zona selecionada pelo Treinador
+        function aplicarZonaPeloTreinador(novaZona, motivoFala) {
+            zonaAtualObj = novaZona;
+            fatorAvancoPista = zonaAtualObj.vel / 60;
 
-                aplicarCorZona(corZonaAtual);
-            });
-        });
+            // Atualiza Interface
+            badgeZona.textContent = zonaAtualObj.nome;
+            badgeZona.style.backgroundColor = zonaAtualObj.cor;
+            painelControle.style.borderColor = zonaAtualObj.cor;
+            hudTreinador.style.borderColor = zonaAtualObj.cor;
+            tempoEl.style.color = zonaAtualObj.cor;
+            barra.style.backgroundColor = zonaAtualObj.cor;
+            document.querySelectorAll('.dado span').forEach(el => el.style.color = zonaAtualObj.cor);
 
-        function aplicarCorZona(hexCor) {
-            painelControle.style.borderColor = hexCor;
-            tempoEl.style.color = hexCor;
-            barra.style.backgroundColor = hexCor;
+            // Atualiza Objetos 3D
+            displayMat.color.set(zonaAtualObj.cor);
+            faixaCentralMat.color.set(zonaAtualObj.cor);
+
+            // Falar mensagem
+            const falaTexto = motivoFala || zonaAtualObj.falas[Math.floor(Math.random() * zonaAtualObj.falas.length)];
+            falarTreinador(falaTexto);
+        }
+
+        // Escolhe uma nova zona aleatória (diferente da atual)
+        function escolherProximaZonaAleatoria() {
+            let zonasPossiveis = zonasTreino.filter(z => z.id !== zonaAtualObj.id);
+            let zonaEscolhida = zonasPossiveis[Math.floor(Math.random() * zonasPossiveis.length)];
             
-            document.querySelectorAll('.dado span').forEach(el => el.style.color = hexCor);
+            // Define o tempo que ficará nessa nova zona (entre 20 e 40 segundos)
+            proximaTrocaZonaEm = Math.floor(Math.random() * 21) + 20;
             
-            // Altera a cor da tela digital no guidão 3D
-            displayMat.color.set(hexCor);
+            aplicarZonaPeloTreinador(zonaEscolhida);
         }
 
         botoesTempo.forEach(btn => {
@@ -321,7 +351,6 @@
                 btn.classList.add('selecionado');
                 tempoTotal = parseInt(btn.dataset.segundos);
                 tempoRestante = tempoTotal;
-                gerarCenarioAleatorio();
                 atualizaTela();
                 btnIniciar.disabled = false;
             });
@@ -339,37 +368,45 @@
             barra.style.width = `${tempoTotal > 0 ? ((tempoTotal - tempoRestante) / tempoTotal) * 100 : 0}%`;
             elCal.textContent = Math.round(calorias);
             elKm.textContent = distancia.toFixed(2);
-            elVel.textContent = velAlvo.toFixed(1);
+            elVel.textContent = zonaAtualObj.vel.toFixed(1);
         }
 
         btnIniciar.addEventListener('click', () => {
             if(tempoRestante <= 0) return;
             treinoAtivo = true;
             if(cronometro) clearInterval(cronometro);
-            
+
+            // Inicia em Z1 (Aquecimento) nos primeiros 30 segundos
+            aplicarZonaPeloTreinador(zonasTreino[0], "Atenção! Treino iniciado. Começaremos com Z1 para aquecer!");
+            proximaTrocaZonaEm = 30;
+
             cronometro = setInterval(() => {
                 tempoRestante--;
-                // Queima de calorias proporcional à intensidade da zona
-                const multiplicadorCal = velAlvo / 15;
-                calorias += (9 * multiplicadorCal) / 60;
-                distancia += velAlvo / 3600;
+                proximaTrocaZonaEm--;
 
-                // Pequena variação orgânica no RPM
-                elRpm.textContent = Math.round(rpmAlvo + Math.sin(tempoRestante / 2) * 4);
+                // Cálculo de Calorias e Distância dinâmico conforme o ritmo atual
+                const multiplicadorCal = zonaAtualObj.vel / 15;
+                calorias += (9 * multiplicadorCal) / 60;
+                distancia += zonaAtualObj.vel / 3600;
+
+                // Variação orgânica no RPM
+                elRpm.textContent = Math.round(zonaAtualObj.rpm + Math.sin(tempoRestante / 2) * 4);
                 atualizaTela();
-                
-                if (tempoRestante >= 1 && tempoRestante <= 3) {
-                    tocarSomBipRegressivo();
+
+                // HORA DE MUDAR DE ZONA (AUTOMÁTICO PELO COACH)
+                if (proximaTrocaZonaEm <= 0 && tempoRestante > 10) {
+                    escolherProximaZonaAleatoria();
                 }
 
+                // Final do Treino
                 if (tempoRestante <= 0) {
                     clearInterval(cronometro);
                     treinoAtivo = false;
-                    tocarSomFimTreino();
+                    falarTreinador("Sensacional! Treino concluído com sucesso! Excelente desempenho hoje!");
                     btnIniciar.disabled = btnParar.disabled = true;
                 }
             }, 1000);
-            
+
             btnIniciar.disabled = true;
             btnParar.disabled = false;
             btnReiniciar.disabled = false;
@@ -380,6 +417,7 @@
                 clearInterval(cronometro);
                 treinoAtivo = false;
                 btnParar.textContent = "Continuar";
+                falarTreinador("Treino pausado. Respire fundo e recupere o fôlego.");
             } else {
                 btnIniciar.click();
                 btnParar.textContent = "Pausar";
@@ -391,7 +429,7 @@
             tempoRestante = tempoTotal;
             calorias = 0; distancia = 0;
             treinoAtivo = false;
-            gerarCenarioAleatorio();
+            aplicarZonaPeloTreinador(zonasTreino[0], "Treino resetado. Escolha a duração e aperte iniciar!");
             atualizaTela();
             btnIniciar.disabled = false;
             btnParar.disabled = true;
@@ -409,7 +447,7 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // Mover Chuva
+            // Mover chuva
             const posAttr = rainGeo.attributes.position;
             for (let i = 0; i < QTD_GOTAS; i++) {
                 posAttr.array[i * 6 + 1] += velocidadeChuvaY;
@@ -424,10 +462,9 @@
             posAttr.needsUpdate = true;
 
             if (treinoAtivo) {
-                // A vibração do guidão e a velocidade da pista aceleram nas zonas mais altas!
-                const frequenciaVibracao = rpmAlvo / 35;
+                // A vibração do guidão e velocidade acompanham a velocidade imposta pelo Coach
+                const frequenciaVibracao = zonaAtualObj.rpm / 35;
                 step += 0.04 * frequenciaVibracao;
-                
                 const speed = fatorAvancoPista;
 
                 trackLines.forEach(line => {
