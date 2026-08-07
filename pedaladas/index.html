@@ -1,0 +1,1297 @@
+<html style="margin:0;padding:0;">
+
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+
+<script>
+
+(function(){
+
+  var s = document.createElement('style');
+
+  s.textContent = ':root{--bg:#f7fcf9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--accent:#0d9669;--accent-soft:rgba(13,150,105,.14);--accent2:#d4724a;--accent2-soft:rgba(212,114,74,.14);--border:rgba(15,23,42,.08)}' +
+
+  '*{margin:0;padding:0;box-sizing:border-box;font-family:Nunito,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}' +
+
+  'body,html{width:100%;background:#050508;color:#fff;-webkit-user-select:none;user-select:none}' +
+
+  '#canvas-container{width:100%;position:relative;z-index:1}' +
+
+  '.hud-superior{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:94%;max-width:500px;z-index:10;display:flex;flex-direction:column;gap:4px;pointer-events:none}' +
+
+  '.hud-linha-topo{display:flex;justify-content:space-between;align-items:center;background:rgba(10,10,15,0.85);border:1px solid rgba(13,150,105,0.4);border-radius:8px;padding:4px 10px;backdrop-filter:blur(8px)}' +
+
+  '.treinador-fala-mini{font-size:0.7rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}' +
+
+  '.fps-badge{font-size:0.55rem;color:#81C784;font-family:monospace;background:rgba(0,255,0,0.1);padding:1px 4px;border-radius:4px}' +
+
+  '.espectro-zonas{display:flex;gap:3px;height:16px;width:100%;background:rgba(0,0,0,0.5);border-radius:4px;padding:2px;border:1px solid rgba(255,255,255,0.1)}' +
+
+  '.bloco-zona{flex:1;border-radius:2px;opacity:0.3;transition:all 0.3s;display:flex;align-items:center;justify-content:center;font-size:0.45rem;font-weight:800}' +
+
+  '.bloco-zona.ativo{opacity:1;transform:scaleY(1.15);box-shadow:0 0 8px currentColor}' +
+
+  '.painel-seta{position:absolute;bottom:175px;width:68px;height:95px;background:rgba(10,10,15,0.88);border:2px solid rgba(255,255,255,0.15);border-radius:12px;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(6px);transition:all 0.08s cubic-bezier(0.4,0,0.2,1);pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,0.5)}' +
+
+  '.painel-seta.esquerda{left:calc(50% - 82px)}' +
+
+  '.painel-seta.direita{right:calc(50% - 82px)}' +
+
+  '.seta-rotulo{font-size:0.5rem;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px}' +
+
+  '.seta-icone{font-size:2rem;transition:transform 0.08s ease,color 0.08s ease;line-height:1}' +
+
+  '.seta-status{font-size:0.55rem;font-weight:900;margin-top:2px;font-family:monospace}' +
+
+  '.painel-seta.ativo-cima{border-color:#0d9669;box-shadow:0 0 20px rgba(13,150,105,0.7),inset 0 0 10px rgba(13,150,105,0.3);background:rgba(5,30,20,0.95)}' +
+
+  '.painel-seta.ativo-cima .seta-icone{color:#0d9669;transform:translateY(-3px) scale(1.1)}' +
+
+  '.painel-seta.ativo-cima .seta-status{color:#0d9669}' +
+
+  '.painel-seta.ativo-baixo{border-color:rgba(255,255,255,0.1);opacity:0.45}' +
+
+  '.painel-seta.ativo-baixo .seta-icone{color:#555;transform:translateY(3px)}' +
+
+  '.painel-seta.ativo-baixo .seta-status{color:#666}' +
+
+  '.painel-controle{position:relative;width:94%;max-width:500px;margin:0 auto 12px;background:rgba(12,12,18,0.92);border-radius:14px;padding:8px 12px;border:1px solid rgba(13,150,105,0.5);z-index:10;backdrop-filter:blur(10px);display:flex;flex-direction:column;gap:5px;box-shadow:0 10px 30px rgba(0,0,0,0.8);transition:border-color 0.4s ease}' +
+
+  '.painel-topo-info{display:flex;justify-content:space-between;align-items:center}' +
+
+  '.secao-label{font-size:0.5rem;color:#888;text-transform:uppercase;letter-spacing:1px;font-weight:800}' +
+
+  '.indicador-faixa{font-size:0.65rem;font-weight:900;color:#0d9669;text-transform:uppercase;font-family:monospace}' +
+
+  '.opcoes-tempo{display:flex;gap:3px;overflow-x:auto;padding-bottom:1px}' +
+
+  '.opcoes-tempo::-webkit-scrollbar{display:none}' +
+
+  '.botao-tempo{padding:3px 6px;font-size:0.6rem;font-weight:800;border:1px solid rgba(255,255,255,0.15);border-radius:4px;background:rgba(0,0,0,0.5);color:#aaa;cursor:pointer;white-space:nowrap;transition:all 0.2s}' +
+
+  '.botao-tempo.selecionado{border-color:#0d9669;background:rgba(13,150,105,0.25);color:#fff;box-shadow:0 0 8px rgba(13,150,105,0.4)}' +
+
+  '.grid-telemetria{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;background:rgba(0,0,0,0.5);padding:5px;border-radius:8px;border:1px solid rgba(255,255,255,0.05)}' +
+
+  '.dado-card{display:flex;flex-direction:column}' +
+
+  '.dado-card span{font-size:0.85rem;font-weight:900;color:#0d9669;font-family:monospace;transition:color 0.4s}' +
+
+  '.dado-card label{font-size:0.45rem;color:#777;text-transform:uppercase;letter-spacing:0.5px}' +
+
+  '.bloco-tempo-progresso{display:flex;align-items:center;justify-content:space-between;gap:8px}' +
+
+  '.tempo-restante{font-size:1.15rem;font-weight:900;color:#0d9669;font-family:monospace;letter-spacing:-0.5px;transition:color 0.4s}' +
+
+  '.barra-container{flex:1;display:flex;flex-direction:column;gap:2px}' +
+
+  '.barra-progresso{width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden}' +
+
+  '.progresso{height:100%;background:#0d9669;width:0%;transition:width 0.2s linear,background-color 0.4s}' +
+
+  '.sub-progresso-etapa{font-size:0.45rem;color:#aaa;font-family:monospace;text-align:right}' +
+
+  '.botoes-acao{display:flex;gap:5px}' +
+
+  '.btn{flex:1;padding:6px;font-size:0.6rem;font-weight:900;border:none;border-radius:6px;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;transition:transform 0.1s,opacity 0.2s}' +
+
+  '.btn:active{transform:scale(0.96)}' +
+
+  '.btn.iniciar{background:#2E7D32;color:#fff;box-shadow:0 2px 10px rgba(46,125,50,0.4)}' +
+
+  '.btn.parar{background:#C62828;color:#fff;box-shadow:0 2px 10px rgba(198,40,40,0.4)}' +
+
+  '.btn.reiniciar{background:#EF6C00;color:#fff}' +
+
+  '.btn.tela-cheia{background:#1565C0;color:#fff}' +
+
+  '.btn.sequencia{background:#6A1B9A;color:#fff;flex:1.5}' +
+
+  '.btn:disabled{opacity:0.3;cursor:not-allowed;box-shadow:none}' +
+
+  '.app-wrapper{position:relative;max-width:560px;margin:0 auto;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.08)}' +
+
+  /* NOVOS ESTILOS PARA SEQUÊNCIAS PERSONALIZADAS */
+
+  '.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:1000;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px)}' +
+
+  '.modal-overlay.aberto{display:flex}' +
+
+  '.modal{background:rgba(15,15,25,0.98);border:1px solid rgba(13,150,105,0.5);border-radius:16px;padding:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.8)}' +
+
+  '.modal-titulo{font-size:1rem;font-weight:900;color:#fff;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}' +
+
+  '.modal-fechar{background:none;border:none;color:#888;font-size:1.2rem;cursor:pointer;padding:0 8px}' +
+
+  '.input-nome-sequencia{width:100%;padding:8px 10px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:0.8rem;font-weight:600;margin-bottom:12px;outline:none}' +
+
+  '.input-nome-sequencia:focus{border-color:#0d9669}' +
+
+  '.lista-etapas{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;max-height:300px;overflow-y:auto;padding-right:4px}' +
+
+  '.etapa-item{display:grid;grid-template-columns:1fr 100px 80px 40px;gap:6px;align-items:center;background:rgba(0,0,0,0.4);padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.08)}' +
+
+  '.etapa-item select, .etapa-item input{background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;padding:5px 6px;font-size:0.7rem;font-weight:600;outline:none;width:100%}' +
+
+  '.etapa-item select:focus, .etapa-item input:focus{border-color:#0d9669}' +
+
+  '.etapa-item .btn-remover{background:#C62828;color:#fff;border:none;border-radius:6px;padding:5px;cursor:pointer;font-size:0.7rem;font-weight:800}' +
+
+  '.btn-adicionar-etapa{width:100%;padding:8px;background:rgba(13,150,105,0.2);border:1px dashed rgba(13,150,105,0.5);border-radius:8px;color:#0d9669;font-size:0.7rem;font-weight:800;cursor:pointer;margin-bottom:12px;transition:all 0.2s}' +
+
+  '.btn-adicionar-etapa:hover{background:rgba(13,150,105,0.3)}' +
+
+  '.modal-botoes{display:flex;gap:6px}' +
+
+  '.modal-botoes .btn{flex:1;padding:8px;font-size:0.7rem}' +
+
+  '.sequencias-salvas{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)}' +
+
+  '.sequencias-salvas-titulo{font-size:0.7rem;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}' +
+
+  '.sequencia-salva-item{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.4);padding:8px 10px;border-radius:8px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.08)}' +
+
+  '.sequencia-salva-item .sequencia-nome{font-size:0.75rem;font-weight:700;color:#fff}' +
+
+  '.sequencia-salva-item .sequencia-info{font-size:0.6rem;color:#888;font-family:monospace;margin-top:2px}' +
+
+  '.sequencia-salva-item .sequencia-acoes{display:flex;gap:4px}' +
+
+  '.sequencia-salva-item .btn-seq{padding:4px 8px;border:none;border-radius:4px;font-size:0.6rem;font-weight:700;cursor:pointer}' +
+
+  '.sequencia-salva-item .btn-seq.usar{background:#2E7D32;color:#fff}' +
+
+  '.sequencia-salva-item .btn-seq.excluir{background:#C62828;color:#fff}' +
+
+  '.zona-z1{color:#2196F3}' +
+
+  '.zona-z2{color:#4CAF50}' +
+
+  '.zona-z3{color:#FF9800}' +
+
+  '.zona-z4{color:#F44336}' +
+
+  '.sequencia-atual-info{font-size:0.55rem;color:#aaa;font-family:monospace;margin-top:2px}' +
+
+  '.seletor-sequencia{display:flex;gap:4px;align-items:center;margin-bottom:4px}' +
+
+  '.seletor-sequencia select{flex:1;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;padding:4px 6px;font-size:0.65rem;font-weight:600;outline:none}' +
+
+  '.seletor-sequencia select:focus{border-color:#0d9669}';
+
+  document.head.appendChild(s);
+
+})();
+
+</script>
+
+<div style="background:linear-gradient(135deg,#0a1628,#050810);min-height:600px;padding:16px;box-sizing:border-box;">
+
+<div class="app-wrapper">
+
+  <div id="canvas-container" style="height:620px;"></div>
+
+  <div class="hud-superior">
+
+    <div class="hud-linha-topo">
+
+      <div class="treinador-fala-mini" id="falaTreinador">Sistema pronto. Selecione o tempo e a sequência.</div>
+
+      <div class="fps-badge" id="fpsCounter">60 FPS</div>
+
+    </div>
+
+    <div class="espectro-zonas">
+
+      <div class="bloco-zona" id="bz1" style="color:#2196F3;background:rgba(33,150,243,0.2)">Z1</div>
+
+      <div class="bloco-zona" id="bz2" style="color:#4CAF50;background:rgba(76,175,80,0.2)">Z2</div>
+
+      <div class="bloco-zona" id="bz3" style="color:#FF9800;background:rgba(255,152,0,0.2)">Z3</div>
+
+      <div class="bloco-zona" id="bz4" style="color:#F44336;background:rgba(244,67,54,0.2)">Z4</div>
+
+    </div>
+
+  </div>
+
+  <div class="painel-seta esquerda" id="setaEsqBox">
+
+    <div class="seta-rotulo">PE ESQ</div>
+
+    <div class="seta-icone" id="setaEsqIcone" style="font-family:monospace;">▲</div>
+
+    <div class="seta-status" id="setaEsqStatus">CIMA</div>
+
+  </div>
+
+  <div class="painel-seta direita" id="setaDirBox">
+
+    <div class="seta-rotulo">PE DIR</div>
+
+    <div class="seta-icone" id="setaDirIcone" style="font-family:monospace;">▼</div>
+
+    <div class="seta-status" id="setaDirStatus">BAIXO</div>
+
+  </div>
+
+  <div class="painel-controle" id="painelControle" style="margin-top:-120px;">
+
+    <div class="painel-topo-info">
+
+      <div class="secao-label">Duracao / Ciclo</div>
+
+      <div class="indicador-faixa" id="indicadorFaixa">Z1 Aquecimento</div>
+
+    </div>
+
+    <!-- SELETOR DE SEQUÊNCIA -->
+
+    <div class="seletor-sequencia">
+
+      <select id="seletorSequencia">
+
+        <option value="padrao">Padrão HIIT (Z1→Z2→Z3→Z4) - 20s cada</option>
+
+      </select>
+
+    </div>
+
+    <div class="sequencia-atual-info" id="sequenciaAtualInfo">4 etapas • 80s por ciclo</div>
+
+    <div class="opcoes-tempo">
+
+      <button class="botao-tempo" data-segundos="300">5 Min</button>
+
+      <button class="botao-tempo" data-segundos="600">10 Min</button>
+
+      <button class="botao-tempo" data-segundos="900">15 Min</button>
+
+      <button class="botao-tempo" data-segundos="1200">20 Min</button>
+
+      <button class="botao-tempo" data-segundos="1800">30 Min</button>
+
+    </div>
+
+    <div class="grid-telemetria">
+
+      <div class="dado-card"><span id="cal">0.0</span><label>Kcal</label></div>
+
+      <div class="dado-card"><span id="km">0.00</span><label>Km</label></div>
+
+      <div class="dado-card"><span id="vel">22.0</span><label>Km/h</label></div>
+
+      <div class="dado-card"><span id="rpm">75</span><label>RPM</label></div>
+
+    </div>
+
+    <div class="bloco-tempo-progresso">
+
+      <div class="tempo-restante" id="tempo">00:00:00</div>
+
+      <div class="barra-container">
+
+        <div class="barra-progresso"><div class="progresso" id="barra"></div></div>
+
+        <div class="sub-progresso-etapa" id="subProgressoEtapa">Etapa: 20s restantes</div>
+
+      </div>
+
+    </div>
+
+    <div class="botoes-acao">
+
+      <button class="btn iniciar" id="btnIniciar" disabled>Iniciar</button>
+
+      <button class="btn parar" id="btnParar" disabled>Pausar</button>
+
+      <button class="btn reiniciar" id="btnReiniciar" disabled>Reset</button>
+
+      <button class="btn sequencia" id="btnSequencia">Sequências</button>
+
+      <button class="btn tela-cheia" id="btnTela">Tela</button>
+
+    </div>
+
+  </div>
+
+</div>
+
+</div>
+
+<!-- MODAL DE SEQUÊNCIAS PERSONALIZADAS -->
+
+<div class="modal-overlay" id="modalSequencias">
+
+  <div class="modal">
+
+    <div class="modal-titulo">
+
+      <span>Gerenciar Sequências de Treino</span>
+
+      <button class="modal-fechar" id="btnFecharModal">×</button>
+
+    </div>
+
+    <input type="text" class="input-nome-sequencia" id="nomeSequencia" placeholder="Nome da sequência (ex: Iniciante, Avançado...)">
+
+    <div class="lista-etapas" id="listaEtapas">
+
+      <!-- Etapas serão adicionadas dinamicamente -->
+
+    </div>
+
+    <button class="btn-adicionar-etapa" id="btnAdicionarEtapa">+ ADICIONAR ETAPA</button>
+
+    <div class="modal-botoes">
+
+      <button class="btn" style="background:#555;color:#fff;" id="btnLimparSequencia">LIMPAR</button>
+
+      <button class="btn" style="background:#0d9669;color:#fff;" id="btnSalvarSequencia">SALVAR SEQUÊNCIA</button>
+
+    </div>
+
+    <div class="sequencias-salvas">
+
+      <div class="sequencias-salvas-titulo">Sequências Salvas</div>
+
+      <div id="listaSequenciasSalvas">
+
+        <!-- Sequências salvas serão listadas aqui -->
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+(function(){
+
+  // Ciclo padrão original
+
+  const cicloHIITPadrao = [
+
+    { zona: 'z1', duracao: 20, fala: "Z1 Aquecimento ativado. Cadencia forte para preparar." },
+
+    { zona: 'z2', duracao: 20, fala: "Z2 Ritmo ativo. Mantenha movimento constante." },
+
+    { zona: 'z3', duracao: 20, fala: "Z3 Limiar alto! Acelere os pes agora!" },
+
+    { zona: 'z4', duracao: 20, fala: "Z4 SPRINT MAXIMO! Forca total por 20 segundos!" }
+
+  ];
+
+  // Ciclo atual (começa com o padrão)
+
+  let cicloHIIT = JSON.parse(JSON.stringify(cicloHIITPadrao));
+
+  // Sequências salvas no localStorage
+
+  let sequenciasSalvas = {};
+
+  const zonas = {
+
+    z1: { nome: "Z1 Aquecimento", xPos: -3.0, vel: 22.0, rpm: 75, cor: "#2196F3", hex: 0x2196F3 },
+
+    z2: { nome: "Z2 Ritmo Ativo", xPos: -1.0, vel: 30.0, rpm: 95, cor: "#4CAF50", hex: 0x4CAF50 },
+
+    z3: { nome: "Z3 HIIT Intenso", xPos:  1.0, vel: 40.0, rpm: 115, cor: "#FF9800", hex: 0xFF9800 },
+
+    z4: { nome: "Z4 SPRINT TOTAL", xPos:  3.0, vel: 52.0, rpm: 140, cor: "#F44336", hex: 0xF44336 }
+
+  };
+
+  // Frases do treinador para cada zona (usadas em sequências personalizadas)
+
+  const frasesTreinador = {
+
+    z1: "Z1 Aquecimento. Cadencia leve para preparar o corpo.",
+
+    z2: "Z2 Ritmo ativo. Mantenha movimento constante e respirando bem.",
+
+    z3: "Z3 Intenso! Acelere os pes, aumente a cadencia!",
+
+    z4: "Z4 SPRINT MAXIMO! Forca total! De tudo de si!"
+
+  };
+
+  function falarTreinador(texto) {
+
+    document.getElementById('falaTreinador').textContent = texto;
+
+    if ('speechSynthesis' in window) {
+
+      window.speechSynthesis.cancel();
+
+      const fala = new SpeechSynthesisUtterance(texto);
+
+      fala.lang = 'pt-BR';
+
+      fala.rate = 1.15;
+
+      const vozes = window.speechSynthesis.getVoices();
+
+      const vozMasculina = vozes.find(v => v.lang.includes('pt') && (v.name.toLowerCase().includes('daniel') || v.name.toLowerCase().includes('google portugues do brasil') && !v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('antonio') || v.name.toLowerCase().includes('manoel')));
+
+      if (vozMasculina) fala.voice = vozMasculina;
+
+      else {
+
+        const vozPt = vozes.find(v => v.lang.includes('pt'));
+
+        if (vozPt) fala.voice = vozPt;
+
+      }
+
+      window.speechSynthesis.speak(fala);
+
+    }
+
+  }
+
+  if ('speechSynthesis' in window) {
+
+    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+
+  }
+
+  // ============ CARREGAR SEQUÊNCIAS SALVAS ============
+
+  function carregarSequenciasSalvas() {
+
+    const salvas = localStorage.getItem('sequenciasTreino');
+
+    if (salvas) {
+
+      sequenciasSalvas = JSON.parse(salvas);
+
+    }
+
+    atualizarSeletorSequencias();
+
+    atualizarListaSequenciasSalvas();
+
+  }
+
+  function salvarSequenciasNoStorage() {
+
+    localStorage.setItem('sequenciasTreino', JSON.stringify(sequenciasSalvas));
+
+  }
+
+  function atualizarSeletorSequencias() {
+
+    const seletor = document.getElementById('seletorSequencia');
+
+    seletor.innerHTML = '<option value="padrao">Padrão HIIT (Z1→Z2→Z3→Z4) - 20s cada</option>';
+
+    Object.keys(sequenciasSalvas).forEach(nome => {
+
+      const seq = sequenciasSalvas[nome];
+
+      const totalSegundos = seq.reduce((s, e) => s + e.duracao, 0);
+
+      seletor.innerHTML += `<option value="${nome}">${nome} (${seq.length} etapas • ${totalSegundos}s/ciclo)</option>`;
+
+    });
+
+  }
+
+  function atualizarInfoSequenciaAtual() {
+
+    const info = document.getElementById('sequenciaAtualInfo');
+
+    const totalSegundos = cicloHIIT.reduce((s, e) => s + e.duracao, 0);
+
+    info.textContent = `${cicloHIIT.length} etapa${cicloHIIT.length > 1 ? 's' : ''} • ${totalSegundos}s por ciclo`;
+
+  }
+
+  // ============ MODAL DE SEQUÊNCIAS ============
+
+  const modal = document.getElementById('modalSequencias');
+
+  const btnSequencia = document.getElementById('btnSequencia');
+
+  const btnFecharModal = document.getElementById('btnFecharModal');
+
+  const btnAdicionarEtapa = document.getElementById('btnAdicionarEtapa');
+
+  const btnSalvarSequencia = document.getElementById('btnSalvarSequencia');
+
+  const btnLimparSequencia = document.getElementById('btnLimparSequencia');
+
+  const listaEtapas = document.getElementById('listaEtapas');
+
+  const listaSequenciasSalvas = document.getElementById('listaSequenciasSalvas');
+
+  const nomeSequenciaInput = document.getElementById('nomeSequencia');
+
+  btnSequencia.addEventListener('click', () => {
+
+    modal.classList.add('aberto');
+
+    carregarEtapasNoModal();
+
+  });
+
+  btnFecharModal.addEventListener('click', () => {
+
+    modal.classList.remove('aberto');
+
+  });
+
+  modal.addEventListener('click', (e) => {
+
+    if (e.target === modal) modal.classList.remove('aberto');
+
+  });
+
+  function carregarEtapasNoModal() {
+
+    listaEtapas.innerHTML = '';
+
+    // Carrega o ciclo atual no modal para edição
+
+    cicloHIIT.forEach(etapa => {
+
+      adicionarItemEtapa(etapa.zona, etapa.duracao);
+
+    });
+
+    atualizarListaSequenciasSalvas();
+
+  }
+
+  function adicionarItemEtapa(zona = 'z1', duracao = 20) {
+
+    const div = document.createElement('div');
+
+    div.className = 'etapa-item';
+
+    div.innerHTML = `
+
+      <select class="zona-z${zona === 'z1' ? '1' : zona === 'z2' ? '2' : zona === 'z3' ? '3' : '4'}">
+
+        <option value="z1" ${zona === 'z1' ? 'selected' : ''}>Z1 - Aquecimento (22 km/h)</option>
+
+        <option value="z2" ${zona === 'z2' ? 'selected' : ''}>Z2 - Ritmo Ativo (30 km/h)</option>
+
+        <option value="z3" ${zona === 'z3' ? 'selected' : ''}>Z3 - HIIT Intenso (40 km/h)</option>
+
+        <option value="z4" ${zona === 'z4' ? 'selected' : ''}>Z4 - Sprint Total (52 km/h)</option>
+
+      </select>
+
+      <input type="number" value="${duracao}" min="5" max="300" placeholder="Segundos">
+
+      <span style="font-size:0.6rem;color:#888;font-family:monospace;">seg</span>
+
+      <button class="btn-remover">×</button>
+
+    `;
+
+    // Atualizar cor ao mudar a zona
+
+    const select = div.querySelector('select');
+
+    select.addEventListener('change', () => {
+
+      select.className = 'zona-' + select.value;
+
+    });
+
+    // Remover etapa
+
+    div.querySelector('.btn-remover').addEventListener('click', () => {
+
+      div.remove();
+
+    });
+
+    listaEtapas.appendChild(div);
+
+  }
+
+  btnAdicionarEtapa.addEventListener('click', () => {
+
+    adicionarItemEtapa('z1', 20);
+
+  });
+
+  btnLimparSequencia.addEventListener('click', () => {
+
+    listaEtapas.innerHTML = '';
+
+    nomeSequenciaInput.value = '';
+
+  });
+
+  btnSalvarSequencia.addEventListener('click', () => {
+
+    const nome = nomeSequenciaInput.value.trim();
+
+    if (!nome) {
+
+      alert('Digite um nome para a sequência!');
+
+      return;
+
+    }
+
+    const etapas = [];
+
+    const itens = listaEtapas.querySelectorAll('.etapa-item');
+
+    itens.forEach(item => {
+
+      const zona = item.querySelector('select').value;
+
+      const duracao = parseInt(item.querySelector('input').value) || 20;
+
+      etapas.push({
+
+        zona: zona,
+
+        duracao: duracao,
+
+        fala: frasesTreinador[zona]
+
+      });
+
+    });
+
+    if (etapas.length === 0) {
+
+      alert('Adicione pelo menos uma etapa!');
+
+      return;
+
+    }
+
+    sequenciasSalvas[nome] = etapas;
+
+    salvarSequenciasNoStorage();
+
+    atualizarSeletorSequencias();
+
+    atualizarListaSequenciasSalvas();
+
+    alert('Sequência "' + nome + '" salva com sucesso!');
+
+  });
+
+  function atualizarListaSequenciasSalvas() {
+
+    listaSequenciasSalvas.innerHTML = '';
+
+    if (Object.keys(sequenciasSalvas).length === 0) {
+
+      listaSequenciasSalvas.innerHTML = '<div style="font-size:0.7rem;color:#666;text-align:center;padding:12px;">Nenhuma sequência salva ainda.</div>';
+
+      return;
+
+    }
+
+    Object.keys(sequenciasSalvas).forEach(nome => {
+
+      const seq = sequenciasSalvas[nome];
+
+      const totalSegundos = seq.reduce((s, e) => s + e.duracao, 0);
+
+      const div = document.createElement('div');
+
+      div.className = 'sequencia-salva-item';
+
+      div.innerHTML = `
+
+        <div>
+
+          <div class="sequencia-nome">${nome}</div>
+
+          <div class="sequencia-info">${seq.length} etapa${seq.length > 1 ? 's' : ''} • ${totalSegundos}s • ${seq.map(e => e.zona.toUpperCase()).join(' → ')}</div>
+
+        </div>
+
+        <div class="sequencia-acoes">
+
+          <button class="btn-seq usar" data-nome="${nome}">USAR</button>
+
+          <button class="btn-seq excluir" data-nome="${nome}">EXCLUIR</button>
+
+        </div>
+
+      `;
+
+      div.querySelector('.btn-seq.usar').addEventListener('click', () => {
+
+        cicloHIIT = JSON.parse(JSON.stringify(sequenciasSalvas[nome]));
+
+        document.getElementById('seletorSequencia').value = nome;
+
+        atualizarInfoSequenciaAtual();
+
+        alert('Sequência "' + nome + '" selecionada!');
+
+        modal.classList.remove('aberto');
+
+      });
+
+      div.querySelector('.btn-seq.excluir').addEventListener('click', () => {
+
+        if (confirm('Excluir a sequência "' + nome + '"?')) {
+
+          delete sequenciasSalvas[nome];
+
+          salvarSequenciasNoStorage();
+
+          atualizarSeletorSequencias();
+
+          atualizarListaSequenciasSalvas();
+
+        }
+
+      });
+
+      listaSequenciasSalvas.appendChild(div);
+
+    });
+
+  }
+
+  // Seletor de sequência
+
+  document.getElementById('seletorSequencia').addEventListener('change', (e) => {
+
+    if (e.target.value === 'padrao') {
+
+      cicloHIIT = JSON.parse(JSON.stringify(cicloHIITPadrao));
+
+    } else if (sequenciasSalvas[e.target.value]) {
+
+      cicloHIIT = JSON.parse(JSON.stringify(sequenciasSalvas[e.target.value]));
+
+    }
+
+    atualizarInfoSequenciaAtual();
+
+  });
+
+  // ============ CÓDIGO ORIGINAL DO TREINO ============
+
+  const container = document.getElementById('canvas-container');
+
+  const scene = new THREE.Scene();
+
+  scene.fog = new THREE.FogExp2(0x050508, 0.035);
+
+  const camera = new THREE.PerspectiveCamera(70, container.clientWidth / container.clientHeight, 0.1, 1000);
+
+  camera.position.set(zonas.z1.xPos, 1.25, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+
+  renderer.setSize(container.clientWidth, container.clientHeight);
+
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  container.appendChild(renderer.domElement);
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+
+  scene.add(ambientLight);
+
+  const headlight = new THREE.SpotLight(0xffffff, 3.5, 50, Math.PI / 3, 0.4);
+
+  headlight.position.set(0, 1.2, -0.1);
+
+  headlight.target.position.set(0, 0, -25);
+
+  scene.add(headlight); scene.add(headlight.target);
+
+  const povGroup = new THREE.Group();
+
+  scene.add(povGroup);
+
+  povGroup.position.x = zonas.z1.xPos;
+
+  const matHandle = new THREE.MeshStandardMaterial({ color: 0x111115, roughness: 0.4, metalness: 0.8 });
+
+  const matGrip = new THREE.MeshStandardMaterial({ color: 0x222225, roughness: 0.9 });
+
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.3), matHandle);
+
+  stem.rotation.x = Math.PI / 3; stem.position.set(0, 0.85, -0.4); povGroup.add(stem);
+
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.75), matHandle);
+
+  bar.rotation.z = Math.PI / 2; bar.position.set(0, 0.95, -0.5); povGroup.add(bar);
+
+  const gripL = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.15), matGrip);
+
+  gripL.rotation.z = Math.PI / 2; gripL.position.set(0.32, 0.95, -0.5); povGroup.add(gripL);
+
+  const gripR = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.15), matGrip);
+
+  gripR.rotation.z = Math.PI / 2; gripR.position.set(-0.32, 0.95, -0.5); povGroup.add(gripR);
+
+  const displayMat = new THREE.MeshBasicMaterial({ color: zonas.z1.hex });
+
+  const display = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.09, 0.02), displayMat);
+
+  display.position.set(0, 1.0, -0.48); display.rotation.x = -Math.PI / 6; povGroup.add(display);
+
+  const roadMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0e, roughness: 0.8 });
+
+  const road = new THREE.Mesh(new THREE.PlaneGeometry(12, 250), roadMat);
+
+  road.rotation.x = -Math.PI / 2; road.position.set(0, 0, -110); scene.add(road);
+
+  Object.keys(zonas).forEach(k => {
+
+    const z = zonas[k];
+
+    const faixaMat = new THREE.MeshBasicMaterial({ color: z.hex });
+
+    const faixa = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 250), faixaMat);
+
+    faixa.rotation.x = -Math.PI / 2;
+
+    faixa.position.set(z.xPos, 0.005, -110);
+
+    scene.add(faixa);
+
+  });
+
+  const trackLines = [];
+
+  const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+  const divisorX = [-2.2, 0.0, 2.2];
+
+  
+
+  for (let i = 0; i < 25; i++) {
+
+    divisorX.forEach(posX => {
+
+      const line = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 2.5), lineMat);
+
+      line.position.set(posX, 0.01, -i * 10); 
+
+      scene.add(line); 
+
+      trackLines.push(line);
+
+    });
+
+  }
+
+  const botoesTempo = document.querySelectorAll('.botao-tempo');
+
+  const painelControle = document.getElementById('painelControle');
+
+  const indicadorFaixa = document.getElementById('indicadorFaixa');
+
+  const tempoEl = document.getElementById('tempo');
+
+  const btnIniciar = document.getElementById('btnIniciar');
+
+  const btnParar = document.getElementById('btnParar');
+
+  const btnReiniciar = document.getElementById('btnReiniciar');
+
+  const btnTela = document.getElementById('btnTela');
+
+  const barra = document.getElementById('barra');
+
+  const subProgressoEtapa = document.getElementById('subProgressoEtapa');
+
+  const elCal = document.getElementById('cal');
+
+  const elKm = document.getElementById('km');
+
+  const elVel = document.getElementById('vel');
+
+  const elRpm = document.getElementById('rpm');
+
+  const fpsCounter = document.getElementById('fpsCounter');
+
+  const setaEsqBox = document.getElementById('setaEsqBox');
+
+  const setaDirBox = document.getElementById('setaDirBox');
+
+  const setaEsqIcone = document.getElementById('setaEsqIcone');
+
+  const setaDirIcone = document.getElementById('setaDirIcone');
+
+  const setaEsqStatus = document.getElementById('setaEsqStatus');
+
+  const setaDirStatus = document.getElementById('setaDirStatus');
+
+  let tempoTotal = 0, tempoRestante = 0;
+
+  let cronometro = null, treinoAtivo = false;
+
+  let calorias = 0, distancia = 0;
+
+  
+
+  let indiceEtapaHIIT = 0;
+
+  let tempoSegundosEtapa = 0;
+
+  let zonaChaveAtual = 'z1';
+
+  let xAlvoCamera = zonas.z1.xPos;
+
+  botoesTempo.forEach(btn => {
+
+    btn.addEventListener('click', () => {
+
+      botoesTempo.forEach(b => b.classList.remove('selecionado'));
+
+      btn.classList.add('selecionado');
+
+      tempoTotal = parseInt(btn.dataset.segundos);
+
+      tempoRestante = tempoTotal;
+
+      atualizaTela();
+
+      btnIniciar.disabled = false;
+
+    });
+
+  });
+
+  function atualizarBlocosEspectro(zonaAtiva) {
+
+    ['z1', 'z2', 'z3', 'z4'].forEach(z => {
+
+      const el = document.getElementById('b' + z);
+
+      if (z === zonaAtiva) el.classList.add('ativo');
+
+      else el.classList.remove('ativo');
+
+    });
+
+  }
+
+  function aplicarEtapaHIIT(etapaIndex) {
+
+    const etapa = cicloHIIT[etapaIndex];
+
+    zonaChaveAtual = etapa.zona;
+
+    tempoSegundosEtapa = 0;
+
+    
+
+    const z = zonas[zonaChaveAtual];
+
+    xAlvoCamera = z.xPos;
+
+    painelControle.style.borderColor = z.cor;
+
+    tempoEl.style.color = z.cor;
+
+    barra.style.backgroundColor = z.cor;
+
+    indicadorFaixa.textContent = z.nome;
+
+    indicadorFaixa.style.color = z.cor;
+
+    document.querySelectorAll('.dado-card span').forEach(el => el.style.color = z.cor);
+
+    displayMat.color.set(z.hex);
+
+    atualizarBlocosEspectro(zonaChaveAtual);
+
+    falarTreinador(etapa.fala);
+
+  }
+
+  function formatarTempo(s) {
+
+    const h = Math.floor(s / 3600).toString().padStart(2, '0');
+
+    const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+
+    const seg = (s % 60).toString().padStart(2, '0');
+
+    return `${h}:${m}:${seg}`;
+
+  }
+
+  function atualizaTela() {
+
+    const z = zonas[zonaChaveAtual];
+
+    tempoEl.textContent = formatarTempo(tempoRestante);
+
+    barra.style.width = `${tempoTotal > 0 ? ((tempoTotal - tempoRestante) / tempoTotal) * 100 : 0}%`;
+
+    
+
+    const etapaAtual = cicloHIIT[indiceEtapaHIIT];
+
+    const restanteEtapa = etapaAtual.duracao - tempoSegundosEtapa;
+
+    subProgressoEtapa.textContent = `Etapa (${etapaAtual.zona.toUpperCase()}): ${restanteEtapa}s`;
+
+    elCal.textContent = calorias.toFixed(1);
+
+    elKm.textContent = distancia.toFixed(2);
+
+    elVel.textContent = z.vel.toFixed(1);
+
+  }
+
+  btnIniciar.addEventListener('click', () => {
+
+    if(tempoRestante <= 0) return;
+
+    treinoAtivo = true;
+
+    if(cronometro) clearInterval(cronometro);
+
+    
+
+    aplicarEtapaHIIT(indiceEtapaHIIT);
+
+    cronometro = setInterval(() => {
+
+      tempoRestante--;
+
+      tempoSegundosEtapa++;
+
+      const etapaAtual = cicloHIIT[indiceEtapaHIIT];
+
+      if (tempoSegundosEtapa >= etapaAtual.duracao && tempoRestante > 0) {
+
+        indiceEtapaHIIT = (indiceEtapaHIIT + 1) % cicloHIIT.length;
+
+        aplicarEtapaHIIT(indiceEtapaHIIT);
+
+      }
+
+      const z = zonas[zonaChaveAtual];
+
+      calorias += (18 * (z.vel / 15)) / 60;
+
+      distancia += z.vel / 3600;
+
+      elRpm.textContent = Math.round(z.rpm + Math.sin(tempoRestante / 2) * 4);
+
+      atualizaTela();
+
+      if (tempoRestante <= 0) {
+
+        clearInterval(cronometro);
+
+        treinoAtivo = false;
+
+        falarTreinador("Treino concluido com sucesso! Excelente desempenho!");
+
+        btnIniciar.disabled = btnParar.disabled = true;
+
+      }
+
+    }, 1000);
+
+    
+
+    btnIniciar.disabled = true;
+
+    btnParar.disabled = false;
+
+    btnReiniciar.disabled = false;
+
+  });
+
+  btnParar.addEventListener('click', () => {
+
+    if (treinoAtivo) {
+
+      clearInterval(cronometro);
+
+      treinoAtivo = false;
+
+      btnParar.textContent = "Continuar";
+
+      falarTreinador("Treino pausado.");
+
+    } else {
+
+      btnIniciar.click();
+
+      btnParar.textContent = "Pausar";
+
+    }
+
+  });
+
+  btnReiniciar.addEventListener('click', () => {
+
+    clearInterval(cronometro);
+
+    tempoRestante = tempoTotal;
+
+    indiceEtapaHIIT = 0;
+
+    tempoSegundosEtapa = 0;
+
+    calorias = 0; distancia = 0;
+
+    treinoAtivo = false;
+
+    aplicarEtapaHIIT(0);
+
+    atualizaTela();
+
+    falarTreinador("Treino reiniciado!");
+
+    btnIniciar.disabled = false;
+
+    btnParar.disabled = true;
+
+    btnReiniciar.disabled = true;
+
+    btnParar.textContent = "Pausar";
+
+  });
+
+  btnTela.addEventListener('click', () => {
+
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+
+    else document.exitFullscreen();
+
+  });
+
+  let step = 0;
+
+  let lastTime = performance.now();
+
+  let frameCount = 0;
+
+  function animate(currentTime) {
+
+    requestAnimationFrame(animate);
+
+    frameCount++;
+
+    if (currentTime - lastTime >= 1000) {
+
+      fpsCounter.textContent = `${frameCount} FPS`;
+
+      frameCount = 0;
+
+      lastTime = currentTime;
+
+    }
+
+    camera.position.x += (xAlvoCamera - camera.position.x) * 0.12;
+
+    povGroup.position.x = camera.position.x;
+
+    if (treinoAtivo) {
+
+      const z = zonas[zonaChaveAtual];
+
+      step += 0.07 * (z.rpm / 60);
+
+      const speed = z.vel / 60;
+
+      trackLines.forEach(line => {
+
+        line.position.z += speed;
+
+        if (line.position.z > 5) line.position.z = -245;
+
+      });
+
+      camera.position.y = 1.25 + Math.sin(step * 2) * 0.015;
+
+      povGroup.position.y = Math.sin(step * 2) * 0.008;
+
+      povGroup.rotation.z = Math.sin(step) * 0.05;
+
+      povGroup.rotation.y = Math.cos(step) * 0.02;
+
+      const alternanciaPedal = Math.sin(step);
+
+      if (alternanciaPedal > 0) {
+
+        setaEsqBox.className = "painel-seta esquerda ativo-cima";
+
+        setaEsqIcone.textContent = "▲";
+
+        setaEsqStatus.textContent = "CIMA";
+
+        setaDirBox.className = "painel-seta direita ativo-baixo";
+
+        setaDirIcone.textContent = "▼";
+
+        setaDirStatus.textContent = "BAIXO";
+
+      } else {
+
+        setaEsqBox.className = "painel-seta esquerda ativo-baixo";
+
+        setaEsqIcone.textContent = "▼";
+
+        setaEsqStatus.textContent = "BAIXO";
+
+        setaDirBox.className = "painel-seta direita ativo-cima";
+
+        setaDirIcone.textContent = "▲";
+
+        setaDirStatus.textContent = "CIMA";
+
+      }
+
+    } else {
+
+      povGroup.rotation.z *= 0.92;
+
+      povGroup.rotation.y *= 0.92;
+
+    }
+
+    renderer.render(scene, camera);
+
+  }
+
+  window.addEventListener('resize', () => {
+
+    camera.aspect = container.clientWidth / container.clientHeight;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(container.clientWidth, container.clientHeight);
+
+  });
+
+  // Inicializar
+
+  carregarSequenciasSalvas();
+
+  atualizarInfoSequenciaAtual();
+
+  requestAnimationFrame(animate);
+
+})();
+
+</script>
+
+</html>
